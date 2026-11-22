@@ -26,7 +26,7 @@ export function Trend({ data }: { data: { date: string; percentage: number | nul
           <Area
             type="monotone"
             dataKey="percentage"
-            stroke="#072B62"
+            stroke="#3854AC"
             fill="#eaf0f9"
             strokeWidth={2.5}
             connectNulls={false}

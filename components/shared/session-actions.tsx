@@ -102,7 +102,7 @@ export function CorrectRecord({ id }: { id: string }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button className="min-h-11 font-semibold text-[#072B62]" onClick={() => setOpen(true)}>
+      <button className="min-h-11 font-semibold text-[#3854AC]" onClick={() => setOpen(true)}>
         Correct
       </button>
       <Dialog
@@ -144,64 +144,97 @@ export function EnrollmentForms({
   batches: Option[];
   enrollments: { id: string; label: string }[];
 }) {
+  const [mode, setMode] = useState('enroll');
   return (
-    <div className="grid gap-5 lg:grid-cols-3">
-      <section className="panel">
-        <h2 className="font-semibold">Enroll a student</h2>
-        <EntityForm
-          fields={[
-            { name: 'studentId', label: 'Student', options: students, required: true },
-            { name: 'enrolledOn', label: 'Enrollment date', type: 'date', required: true },
-          ]}
-          action={(v) => enrollAction({ ...v, batchId })}
-          label="Enroll student"
-        />
-      </section>
-      <section className="panel">
-        <h2 className="font-semibold">Transfer enrollment</h2>
-        <EntityForm
-          fields={[
-            {
-              name: 'enrollmentId',
-              label: 'Active enrollment',
-              options: enrollments.map((e) => ({ value: e.id, label: e.label })),
-              required: true,
-            },
-            {
-              name: 'batchId',
-              label: 'New batch in same course',
-              options: batches,
-              required: true,
-            },
-            { name: 'effectiveOn', label: 'Effective date', type: 'date', required: true },
-            { name: 'reason', label: 'Transfer reason', type: 'textarea', required: true },
-          ]}
-          action={transferAction}
-          label="Transfer student"
-        />
-      </section>
-      <section className="panel">
-        <h2 className="font-semibold">End enrollment</h2>
-        <EntityForm
-          fields={[
-            {
-              name: 'id',
-              label: 'Active enrollment',
-              options: enrollments.map((e) => ({ value: e.id, label: e.label })),
-              required: true,
-            },
-            {
-              name: 'endedOn',
-              label: 'First day no longer enrolled',
-              type: 'date',
-              required: true,
-            },
-            { name: 'reason', label: 'Reason', type: 'textarea', required: true },
-          ]}
-          action={endEnrollmentAction}
-          label="End enrollment"
-        />
-      </section>
+    <div className="panel">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-base font-bold">Manage enrollment</h2>
+          <p className="muted mt-1">Choose an action for this batch.</p>
+        </div>
+        <div className="flex flex-wrap gap-1 rounded-xl bg-[#eef1f7] p-1">
+          {[
+            ['enroll', 'Enroll student'],
+            ['transfer', 'Transfer'],
+            ['end', 'End enrollment'],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={mode === value}
+              className={
+                'min-h-11 rounded-lg px-3 text-xs font-bold ' +
+                (mode === value ? 'bg-white text-[#3854ac] shadow-sm' : 'text-slate-500')
+              }
+              onClick={() => setMode(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {mode === 'enroll' && (
+        <section className="max-w-xl">
+          <h2 className="font-semibold">Enroll a student</h2>
+          <EntityForm
+            fields={[
+              { name: 'studentId', label: 'Student', options: students, required: true },
+              { name: 'enrolledOn', label: 'Enrollment date', type: 'date', required: true },
+            ]}
+            action={(v) => enrollAction({ ...v, batchId })}
+            label="Enroll student"
+          />
+        </section>
+      )}
+      {mode === 'transfer' && (
+        <section className="max-w-xl">
+          <h2 className="font-semibold">Transfer enrollment</h2>
+          <EntityForm
+            fields={[
+              {
+                name: 'enrollmentId',
+                label: 'Active enrollment',
+                options: enrollments.map((e) => ({ value: e.id, label: e.label })),
+                required: true,
+              },
+              {
+                name: 'batchId',
+                label: 'New batch in same course',
+                options: batches,
+                required: true,
+              },
+              { name: 'effectiveOn', label: 'Effective date', type: 'date', required: true },
+              { name: 'reason', label: 'Transfer reason', type: 'textarea', required: true },
+            ]}
+            action={transferAction}
+            label="Transfer student"
+          />
+        </section>
+      )}
+      {mode === 'end' && (
+        <section className="max-w-xl">
+          <h2 className="font-semibold">End enrollment</h2>
+          <EntityForm
+            fields={[
+              {
+                name: 'id',
+                label: 'Active enrollment',
+                options: enrollments.map((e) => ({ value: e.id, label: e.label })),
+                required: true,
+              },
+              {
+                name: 'endedOn',
+                label: 'First day no longer enrolled',
+                type: 'date',
+                required: true,
+              },
+              { name: 'reason', label: 'Reason', type: 'textarea', required: true },
+            ]}
+            action={endEnrollmentAction}
+            label="End enrollment"
+          />
+        </section>
+      )}
     </div>
   );
 }

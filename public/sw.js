@@ -1,4 +1,4 @@
-const CACHE = 'aecs-shell-v1';
+const CACHE = 'aecs-shell-v2';
 self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
@@ -10,12 +10,22 @@ self.addEventListener('install', (event) => {
       const assets = [...html.matchAll(/(?:src|href)="([^"]+)"/g)]
         .map((m) => m[1].replaceAll('&amp;', '&'))
         .filter((url) => url.startsWith('/_next/static/'));
-      await cache.addAll([...new Set(['/icon.svg', '/manifest.webmanifest', ...assets])]);
+      await cache.addAll([
+        ...new Set(['/icon.svg', '/brand/aecs-logo.png', '/manifest.webmanifest', ...assets]),
+      ]);
     })(),
   );
   self.skipWaiting();
 });
-self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
+self.addEventListener('activate', (event) =>
+  event.waitUntil(
+    (async () => {
+      for (const name of await caches.keys())
+        if (name.startsWith('aecs-shell-') && name !== CACHE) await caches.delete(name);
+      await self.clients.claim();
+    })(),
+  ),
+);
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin || event.request.method !== 'GET') return;
@@ -23,7 +33,11 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(fetch(event.request).catch(() => caches.match('/offline')));
     return;
   }
-  if (url.pathname.startsWith('/_next/static/') || url.pathname === '/icon.svg') {
+  if (
+    url.pathname.startsWith('/_next/static/') ||
+    url.pathname === '/icon.svg' ||
+    url.pathname.startsWith('/brand/')
+  ) {
     event.respondWith(
       caches.open(CACHE).then(async (cache) => {
         const hit = await cache.match(event.request);

@@ -11,9 +11,11 @@ const statuses = ['present', 'absent', 'late', 'excused'] as const;
 export function AttendanceMarking({
   model,
   offline = false,
+  children,
 }: {
   model: SessionModel;
   offline?: boolean;
+  children?: React.ReactNode;
 }) {
   const router = useRouter();
   const [rows, setRows] = useState(model.records);
@@ -244,14 +246,21 @@ export function AttendanceMarking({
   );
   const unmarked = rows.filter((r) => !r.status).length;
   return (
-    <div className="space-y-5">
-      <div>
-        <p className="muted">
-          {model.session.sessionDate} · {model.session.startTime.slice(0, 5)}–
-          {model.session.endTime.slice(0, 5)}
-        </p>
-        <h1 className="page-title mt-1">{model.batch.name}</h1>
-        <p className="mt-2 flex items-center gap-2 text-sm text-slate-500">
+    <div className="space-y-6 pb-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="eyebrow mb-2">Class attendance</p>
+          <h1 className="page-title">{model.batch.name}</h1>
+          <p className="muted">
+            {model.session.sessionDate} · {model.session.startTime.slice(0, 5)}–
+            {model.session.endTime.slice(0, 5)}
+          </p>
+        </div>
+        <p
+          role="status"
+          className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-500"
+        >
+          {online && sync === 'SYNCED' && <span className="size-1.5 rounded-full bg-emerald-500" />}
           {!online && <WifiOff size={16} />}
           {locked
             ? model.session.status === 'cancelled'
@@ -280,25 +289,34 @@ export function AttendanceMarking({
           </div>
         </div>
       )}
-      <div className="grid grid-cols-5 gap-1.5">
+      <div className="grid grid-cols-5 gap-2 sm:gap-3">
         {[...statuses, 'unmarked'].map((s) => (
-          <div
-            key={s}
-            className="rounded-lg border border-slate-200 bg-white px-1 py-3 text-center"
-          >
-            <p className="text-xl font-bold text-[#072B62]">
+          <div key={s} className="attendance-stat" data-status={s}>
+            <p className="text-2xl font-extrabold tracking-tight text-[#253963]">
               {s === 'unmarked' ? unmarked : totals[s]}
             </p>
-            <p className="text-[11px] capitalize text-slate-500">{s}</p>
+            <p className="mt-1 text-[10px] font-semibold capitalize text-slate-500 sm:text-xs">
+              {s}
+            </p>
           </div>
         ))}
+      </div>
+      {children}
+      <div className="flex items-center justify-between">
+        <h2 className="font-bold text-[#253963]">
+          Student roster{' '}
+          <span className="ml-2 text-xs font-medium text-slate-400">{rows.length} students</span>
+        </h2>
+        <span className="text-xs text-slate-500">
+          {rows.length - unmarked} of {rows.length} marked
+        </span>
       </div>
       <div className="flex flex-col gap-3 sm:flex-row">
         <label className="relative min-w-0 flex-1">
           <Search size={18} className="absolute left-3 top-3.5 text-slate-400" />
           <input
             aria-label="Search students"
-            className="input pl-10"
+            className="input !pl-10"
             placeholder="Search name or student code"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -341,9 +359,9 @@ export function AttendanceMarking({
             `${r.fullName} ${r.studentCode}`.toLowerCase().includes(search.toLowerCase()),
           )
           .map((r, i) => (
-            <article key={r.id} className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4">
-              <div className="mb-3 flex items-center gap-3">
-                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-blue-50 text-xs font-semibold text-[#072B62]">
+            <article key={r.id} className="attendance-row">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-blue-50 text-xs font-semibold text-[#3854AC]">
                   {r.fullName
                     .split(' ')
                     .map((n) => n[0])
@@ -354,12 +372,12 @@ export function AttendanceMarking({
                   <p className="truncate text-sm font-semibold">{r.fullName}</p>
                   <p className="text-xs text-slate-400">{r.studentCode}</p>
                 </div>
-                <span className="ml-auto text-xs text-slate-400">{i + 1}</span>
+                <span className="sr-only">Student {i + 1}</span>
               </div>
               <div
                 role="group"
                 aria-label={`Attendance for ${r.fullName}`}
-                className="grid grid-cols-4 gap-1.5"
+                className="attendance-options"
               >
                 {statuses.map((s) => (
                   <button
@@ -381,19 +399,34 @@ export function AttendanceMarking({
             </article>
           ))}
         {!rows.length && <p className="empty">No students were enrolled on this session date.</p>}
+        {rows.length > 0 &&
+          !rows.some((r) =>
+            `${r.fullName} ${r.studentCode}`.toLowerCase().includes(search.toLowerCase()),
+          ) && <p className="empty">No students match your search.</p>}
       </div>
       {!locked && (
-        <div className="sticky bottom-22 z-10 rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+        <div className="attendance-submit">
+          <div>
+            <p className="text-sm font-bold">
+              {unmarked
+                ? `${unmarked} ${unmarked === 1 ? 'student needs' : 'students need'} a status`
+                : 'Ready to submit'}
+            </p>
+            <p className="muted">
+              {unmarked
+                ? 'Mark every student before submitting.'
+                : 'Submission locks this class attendance.'}
+            </p>
+          </div>
           <Button
-            className="w-full"
-            variant="orange"
+            className="shrink-0"
             disabled={
               !online || busy || !ready || unmarked > 0 || !rows.length || sync === 'CONFLICT'
             }
             onClick={() => setConfirm(true)}
           >
             <LockKeyhole size={17} />
-            {busy ? 'Saving…' : `Submit attendance · ${rows.length} students`}
+            {busy ? 'Saving…' : 'Submit attendance'}
           </Button>
         </div>
       )}

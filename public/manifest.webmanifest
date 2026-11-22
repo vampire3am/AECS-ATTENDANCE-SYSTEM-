@@ -1,12 +1,23 @@
 {
   "name": "AECS Attend",
   "short_name": "AECS Attend",
-  "description": "AECS staff attendance workspace",
+  "description": "AECS student check-in and staff attendance",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f5f7fa",
-  "theme_color": "#072B62",
+  "background_color": "#f7f8fc",
+  "theme_color": "#3854ac",
   "icons": [
-    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    {
+      "src": "/brand/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
   ]
 }

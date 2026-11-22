@@ -1,14 +1,13 @@
+import { Brand } from '@/components/shared/brand';
 import Link from 'next/link';
 import { LoginForm } from './sign-in';
 export default function Login() {
   return (
     <main className="grid min-h-dvh lg:grid-cols-2">
-      <section className="hidden flex-col justify-between bg-[#072B62] p-14 text-white lg:flex">
-        <p className="text-2xl font-bold">
-          AECS <span className="font-normal">Attend</span>
-        </p>
+      <section className="hidden flex-col justify-between bg-[#2B4088] p-14 text-white lg:flex">
+        <Brand inverse />
         <div>
-          <div className="mb-8 h-1 w-14 bg-[#F28A00]" />
+          <div className="mb-8 h-1 w-14 bg-[#ED7824]" />
           <h1 className="max-w-md text-5xl font-bold leading-tight tracking-tight">
             Every student.
             <br />
@@ -24,7 +23,9 @@ export default function Login() {
       </section>
       <section className="flex items-center justify-center bg-white p-6">
         <div className="w-full max-w-sm">
-          <p className="mb-12 text-xl font-bold text-[#072B62] lg:hidden">AECS Attend</p>
+          <div className="mb-10 lg:hidden">
+            <Brand />
+          </div>
           <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-orange-600">
             Staff workspace
           </p>
@@ -33,7 +34,7 @@ export default function Login() {
           <LoginForm />
           <Link
             href="/student"
-            className="mt-6 block rounded-lg border border-slate-200 p-3 text-center text-sm font-semibold text-[#072B62]"
+            className="mt-6 block rounded-lg border border-slate-200 p-3 text-center text-sm font-semibold text-[#3854AC]"
           >
             Student? Verify your code and scan here
           </Link>

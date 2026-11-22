@@ -54,7 +54,7 @@ export function ReportFilters({
         </select>
       </label>
       <button
-        className="min-h-11 rounded-lg bg-[#072B62] px-4 font-semibold text-white"
+        className="min-h-11 rounded-lg bg-[#3854AC] px-4 font-semibold text-white"
         type="submit"
       >
         Apply filters

@@ -1,3 +1,4 @@
+import { Brand } from '@/components/shared/brand';
 import { Nav } from '@/components/shared/nav';
 import { requireActor } from '@/lib/auth/permissions';
 import Link from 'next/link';
@@ -11,8 +12,8 @@ export default async function TeacherLayout({ children }: { children: React.Reac
   return (
     <div className="mx-auto min-h-dvh max-w-3xl pb-24">
       <header className="flex h-18 items-center justify-between border-b border-slate-200 bg-white px-5">
-        <Link href="/teacher" className="text-lg font-bold text-[#072B62]">
-          AECS <span className="font-normal">Attend</span>
+        <Link href="/teacher" className="text-lg font-bold text-[#3854AC]">
+          <Brand />
         </Link>
         <span className="badge">Teacher workspace</span>
       </header>

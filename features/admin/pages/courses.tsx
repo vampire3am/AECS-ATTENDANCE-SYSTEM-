@@ -47,7 +47,7 @@ export async function CoursesPage({ id, c }: PageContext) {
         {c.courses.map((r) => (
           <article key={r.id} className="panel">
             <div className="flex items-center justify-between">
-              <span className="rounded-lg bg-blue-50 p-2 text-sm font-bold text-[#072B62]">
+              <span className="rounded-lg bg-blue-50 p-2 text-sm font-bold text-[#3854AC]">
                 {r.code}
               </span>
               <Badge status={r.status} />

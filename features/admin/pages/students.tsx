@@ -68,7 +68,7 @@ export async function StudentsPage({ q, id }: PageContext) {
               <p className="muted">
                 {r.course_name} · {r.batch_name}
               </p>
-              <p className="mt-3 text-3xl font-bold text-[#072B62]">
+              <p className="mt-3 text-3xl font-bold text-[#3854AC]">
                 {r.percentage === null ? '—' : `${r.percentage}%`}
               </p>
               <p className="muted">
@@ -166,9 +166,9 @@ export async function StudentsPage({ q, id }: PageContext) {
           <option value="active">Active</option>
           <option value="archived">Archived</option>
         </select>
-        <button className="rounded-lg bg-[#072B62] px-5 py-2 text-white">Search</button>
+        <button className="rounded-lg bg-[#3854AC] px-5 py-2 text-white">Search</button>
       </form>
-      <p className="mb-4 rounded-lg bg-blue-50 p-3 text-sm text-[#072B62]">
+      <p className="mb-4 rounded-lg bg-blue-50 p-3 text-sm text-[#3854AC]">
         Give students the private <strong>Enrollment &amp; check-in code</strong> for their course
         and batch. The Student ID is for administration and cannot be used to check in.
       </p>
@@ -187,7 +187,7 @@ export async function StudentsPage({ q, id }: PageContext) {
         {list.rows.map((r) => (
           <tr key={r.id}>
             <td>
-              <Link className="font-semibold text-[#072B62]" href={`/admin/students/${r.id}`}>
+              <Link className="font-semibold text-[#3854AC]" href={`/admin/students/${r.id}`}>
                 {r.fullName}
               </Link>
               <p className="text-xs text-slate-400">{r.email}</p>
@@ -211,7 +211,7 @@ export async function StudentsPage({ q, id }: PageContext) {
                 <div>
                   <p className="text-sm text-amber-700">No active enrollment</p>
                   <Link
-                    className="inline-block min-h-10 py-2 text-xs font-semibold text-[#072B62]"
+                    className="inline-block min-h-10 py-2 text-xs font-semibold text-[#3854AC]"
                     href={`/admin/students/${r.id}`}
                   >
                     View enrollments

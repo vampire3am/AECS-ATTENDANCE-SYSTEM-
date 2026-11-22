@@ -1,4 +1,5 @@
 'use client';
+import { Brand } from '@/components/shared/brand';
 import { useState } from 'react';
 import Link from 'next/link';
 import { GraduationCap, ShieldCheck, CheckCircle2 } from 'lucide-react';
@@ -31,15 +32,15 @@ export function StudentPortal({ initialScan }: { initialScan?: ClassroomScan }) 
     return result;
   }
   return (
-    <main className="min-h-dvh bg-[#f5f7fa]">
+    <main className="min-h-dvh bg-[#f7f8fc]">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5">
-          <Link href="/" className="text-xl font-bold tracking-tight text-[#072B62]">
-            AECS <span className="font-normal">Attend</span>
+          <Link href="/" className="text-xl font-bold tracking-tight text-[#3854AC]">
+            <Brand />
           </Link>
           <Link
             href="/login"
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-[#072B62]"
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-[#3854AC]"
           >
             Staff sign in
           </Link>
@@ -51,10 +52,10 @@ export function StudentPortal({ initialScan }: { initialScan?: ClassroomScan }) 
             <GraduationCap size={16} />
             Student attendance
           </span>
-          <h1 className="mt-6 max-w-md text-4xl font-bold leading-tight tracking-tight text-[#072B62] sm:text-5xl">
-            Your attendance.
+          <h1 className="mt-6 max-w-md text-4xl font-extrabold leading-tight tracking-tight text-[#3854AC] sm:text-[3.25rem]">
+            Here for class.
             <br />
-            One quick check-in.
+            You’re in the right place.
           </h1>
           <p className="mt-5 max-w-md text-slate-500">
             Scan the common AECS QR and verify your private enrollment code. We’ll find your course
@@ -62,15 +63,15 @@ export function StudentPortal({ initialScan }: { initialScan?: ClassroomScan }) 
           </p>
           <ol className="mt-8 grid gap-5 text-sm text-slate-600">
             <li>
-              <strong className="text-[#072B62]">1. Scan the common AECS QR</strong>
+              <strong className="text-[#3854AC]">1. Scan the common AECS QR</strong>
               <p className="mt-1">The same QR works for every course and batch.</p>
             </li>
             <li>
-              <strong className="text-[#072B62]">2. Verify your enrollment code</strong>
+              <strong className="text-[#3854AC]">2. Verify your enrollment code</strong>
               <p className="mt-1">Your private code identifies your course and batch.</p>
             </li>
             <li>
-              <strong className="text-[#072B62]">3. Let your teacher confirm</strong>
+              <strong className="text-[#3854AC]">3. Let your teacher confirm</strong>
               <p className="mt-1">Your teacher verifies that you are physically in class.</p>
             </li>
           </ol>
@@ -82,7 +83,7 @@ export function StudentPortal({ initialScan }: { initialScan?: ClassroomScan }) 
           {done ? (
             <div role="status" className="py-8 text-center">
               <CheckCircle2 className="mx-auto text-emerald-600" size={44} />
-              <h2 className="mt-4 text-2xl font-bold text-[#072B62]">Check-in received</h2>
+              <h2 className="mt-4 text-2xl font-bold text-[#3854AC]">Check-in received</h2>
               <p className="mt-3 text-sm text-slate-500">
                 Your request was received. Your teacher will verify your presence and finalize
                 attendance.
@@ -102,12 +103,12 @@ export function StudentPortal({ initialScan }: { initialScan?: ClassroomScan }) 
             </div>
           ) : !identity ? (
             <>
-              <h2 className="text-xl font-bold text-[#072B62]">Verify your enrollment</h2>
+              <h2 className="text-xl font-bold text-[#3854AC]">Verify your enrollment</h2>
               <p className="muted mt-2">
                 Use the private code issued by AECS for your course and batch.
               </p>
               {scan && (
-                <p className="mt-4 rounded-lg bg-blue-50 p-3 text-sm text-[#072B62]">
+                <p className="mt-4 rounded-lg bg-blue-50 p-3 text-sm text-[#3854AC]">
                   Common AECS check-in. Your private code identifies the correct course and batch.
                 </p>
               )}
@@ -160,11 +161,11 @@ export function StudentPortal({ initialScan }: { initialScan?: ClassroomScan }) 
           ) : (
             <>
               <div className="mb-5 rounded-xl bg-blue-50 p-4">
-                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#072B62]">
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#3854AC]">
                   <ShieldCheck size={16} />
                   Enrollment verified
                 </p>
-                <h2 className="mt-3 text-lg font-bold text-[#072B62]">{identity.studentName}</h2>
+                <h2 className="mt-3 text-lg font-bold text-[#3854AC]">{identity.studentName}</h2>
                 <p className="mt-1 text-sm text-slate-600">
                   {identity.courseName} · {identity.batchName}
                 </p>
@@ -206,7 +207,7 @@ export function StudentPortal({ initialScan }: { initialScan?: ClassroomScan }) 
                 </>
               ) : (
                 <>
-                  <h3 className="font-semibold text-[#072B62]">Scan your classroom QR</h3>
+                  <h3 className="font-semibold text-[#3854AC]">Scan your classroom QR</h3>
                   <p className="muted mt-2">
                     Scan the common AECS QR or a session QR displayed by your teacher.
                   </p>

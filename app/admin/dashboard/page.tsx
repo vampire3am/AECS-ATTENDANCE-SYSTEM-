@@ -47,7 +47,7 @@ export default async function Dashboard() {
               <p className="text-xs font-medium text-slate-500 sm:text-sm">{label}</p>
               <Icon size={18} className="text-slate-400" />
             </div>
-            <p className="mt-4 text-3xl font-bold tracking-tight text-[#072B62]">{value}</p>
+            <p className="mt-4 text-3xl font-bold tracking-tight text-[#3854AC]">{value}</p>
           </section>
         ))}
       </div>
@@ -58,7 +58,7 @@ export default async function Dashboard() {
               <h2 className="font-semibold">Attendance overview</h2>
               <p className="muted mt-1">Submitted classes · Last 14 days</p>
             </div>
-            <strong className="text-2xl text-[#072B62]">
+            <strong className="text-2xl text-[#3854AC]">
               {d.metrics.average === null ? '—' : `${d.metrics.average}%`}
             </strong>
           </div>
@@ -101,7 +101,7 @@ export default async function Dashboard() {
         <section className="panel !p-0">
           <div className="flex items-center justify-between p-6">
             <h2 className="font-semibold">Today’s classes</h2>
-            <Link href="/admin/attendance" className="text-sm font-semibold text-[#072B62]">
+            <Link href="/admin/attendance" className="text-sm font-semibold text-[#3854AC]">
               View attendance
             </Link>
           </div>
@@ -120,7 +120,7 @@ export default async function Dashboard() {
                   <tr key={s.id}>
                     <td>
                       <Link
-                        className="font-semibold text-[#072B62]"
+                        className="font-semibold text-[#3854AC]"
                         href={`/admin/attendance/${s.id}`}
                       >
                         {s.batchName}
@@ -156,7 +156,7 @@ export default async function Dashboard() {
                 </div>
                 <div className="h-1.5 rounded-full bg-slate-100">
                   <div
-                    className="h-full rounded-full bg-[#072B62]"
+                    className="h-full rounded-full bg-[#3854AC]"
                     style={{ width: `${b.percentage ?? 0}%` }}
                   />
                 </div>

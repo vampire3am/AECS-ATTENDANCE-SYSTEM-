@@ -1,4 +1,5 @@
 'use client';
+import { Brand } from '@/components/shared/brand';
 import { AttendanceMarking } from '@/components/attendance/marking';
 import { PreservedDrafts } from '@/components/shared/preserved-drafts';
 import { offlineDb, type SessionModel } from '@/lib/offline';
@@ -20,6 +21,9 @@ export default function Offline() {
   }, []);
   return (
     <main className="mx-auto max-w-2xl p-4 pb-24">
+      <div className="mb-7 mt-3">
+        <Brand />
+      </div>
       {selected ? (
         <AttendanceMarking model={selected} offline />
       ) : (
@@ -47,7 +51,7 @@ export default function Offline() {
               <p className="empty">Open a class while online to make its roster available here.</p>
             )}
           </div>
-          <Link className="mt-8 inline-block font-semibold text-[#072B62]" href="/">
+          <Link className="mt-8 inline-block font-semibold text-[#3854AC]" href="/">
             Reconnect to workspace
           </Link>
           <PreservedDrafts />

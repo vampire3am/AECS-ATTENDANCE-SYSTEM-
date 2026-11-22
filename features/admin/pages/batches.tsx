@@ -45,19 +45,65 @@ export async function BatchesPage({ actor, id, tab, c }: PageContext) {
             fields={batchFields(c.courses)}
           />
         </PageHeader>
-        <CommonQr />
-        <div className="mb-6 flex flex-wrap gap-2">
+        {!tab && <CommonQr />}
+        <div className="mb-6 inline-flex max-w-full gap-1 overflow-x-auto rounded-xl bg-[#eef1f7] p-1">
           {['overview', 'students', 'schedule', 'sessions'].map((t) => (
             <Link
               key={t}
               href={`/admin/batches/${id}${t === 'overview' ? '' : '/' + t}`}
-              className={`rounded-lg px-4 py-2 text-sm capitalize ${(tab ?? 'overview') === t ? 'bg-[#072B62] text-white' : 'bg-white text-slate-600'}`}
+              className="tab-link capitalize"
+              aria-current={(tab ?? 'overview') === t ? 'page' : undefined}
             >
               {t}
             </Link>
           ))}
         </div>
-        {(!tab || tab === 'students') && (
+        {!tab && (
+          <section className="mb-6 space-y-5">
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[
+                [
+                  'Enrolled students',
+                  enrollment.filter((r) => r.enrollment.status === 'active').length,
+                ],
+                ['Weekly classes', schedules.filter((r) => r.status === 'active').length],
+                ['Assigned teachers', assignments.length],
+              ].map(([label, value]) => (
+                <div key={label} className="panel !p-5">
+                  <p className="eyebrow">{label}</p>
+                  <p className="mt-2 text-3xl font-extrabold text-[#253963]">{value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="panel">
+              <p className="eyebrow mb-2">Batch workspace</p>
+              <h2 className="text-lg font-bold">Prepare your next class.</h2>
+              <p className="muted mt-2">
+                Manage enrollments, set a weekly timetable, then open today’s attendance.
+              </p>
+              <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                {[
+                  ['students', '01', 'Manage students', 'Enroll, transfer and view private codes.'],
+                  ['schedule', '02', 'Set the timetable', 'Choose class days and times.'],
+                  ['sessions', '03', 'View class sessions', 'Open and review attendance.'],
+                ].map(([path, step, title, description]) => (
+                  <Link
+                    key={path}
+                    href={'/admin/batches/' + id + '/' + path}
+                    className="rounded-xl border border-slate-200 p-4 transition-colors hover:border-[#aebce7] hover:bg-[#fafbff]"
+                  >
+                    <span className="text-[10px] font-extrabold tracking-widest text-[#bd5f22]">
+                      {step}
+                    </span>
+                    <h3 className="mt-2 text-sm font-bold text-[#3854ac]">{title} →</h3>
+                    <p className="mt-1 text-xs leading-relaxed text-slate-500">{description}</p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+        {tab === 'students' && (
           <>
             <Table
               heads={['Student', 'Enrollment code', 'Enrollment', 'Status']}
@@ -68,7 +114,7 @@ export async function BatchesPage({ actor, id, tab, c }: PageContext) {
                   <td>
                     <Link
                       href={`/admin/students/${r.student.id}`}
-                      className="font-semibold text-[#072B62]"
+                      className="font-semibold text-[#3854AC]"
                     >
                       {r.student.fullName}
                     </Link>
@@ -110,7 +156,7 @@ export async function BatchesPage({ actor, id, tab, c }: PageContext) {
             </div>
           </>
         )}
-        {(!tab || tab === 'schedule') && (
+        {tab === 'schedule' && (
           <section className="panel mt-6">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <h2 className="font-semibold">Weekly timetable</h2>
@@ -200,7 +246,7 @@ export async function BatchesPage({ actor, id, tab, c }: PageContext) {
           <SessionTable sessions={await listSessions(actor, { batchId: id })} />
         )}
         {!tab && (
-          <section className="panel mt-6 max-w-lg">
+          <section className="panel mt-6">
             <h2 className="font-semibold">Teacher assignments</h2>
             <div className="mt-3 space-y-2">
               {assignments.map((a) => (
@@ -235,7 +281,7 @@ export async function BatchesPage({ actor, id, tab, c }: PageContext) {
         {c.batches.map((b) => (
           <tr key={b.id}>
             <td>
-              <Link className="font-semibold text-[#072B62]" href={`/admin/batches/${b.id}`}>
+              <Link className="font-semibold text-[#3854AC]" href={`/admin/batches/${b.id}`}>
                 {b.name}
               </Link>
               <p className="text-xs text-slate-400">{b.code}</p>
@@ -250,7 +296,7 @@ export async function BatchesPage({ actor, id, tab, c }: PageContext) {
             <td>
               <div className="flex flex-wrap gap-3">
                 <Link
-                  className="font-semibold text-[#072B62]"
+                  className="font-semibold text-[#3854AC]"
                   href={`/admin/batches/${b.id}#common-qr`}
                 >
                   Common attendance QR

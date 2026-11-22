@@ -44,7 +44,7 @@ export function LoginForm() {
           {...register('password')}
         />
       </label>
-      <Link href="/forgot-password" className="text-right text-sm text-[#072B62]">
+      <Link href="/forgot-password" className="text-right text-sm text-[#3854AC]">
         Forgot password?
       </Link>
       {error && (

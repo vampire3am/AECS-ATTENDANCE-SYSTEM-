@@ -32,8 +32,9 @@ export default async function TeacherPage({ params }: { params: Promise<{ path?:
       </>
     ) : (
       <>
-        {model.session.status === 'open' && <SessionCheckins sessionId={id} />}
-        <AttendanceMarking model={{ ...model, actorId: actor.id }} />
+        <AttendanceMarking model={{ ...model, actorId: actor.id }}>
+          {model.session.status === 'open' && <SessionCheckins sessionId={id} />}
+        </AttendanceMarking>
       </>
     );
   }
@@ -116,7 +117,7 @@ export default async function TeacherPage({ params }: { params: Promise<{ path?:
               <p className="text-xs font-semibold uppercase tracking-wider text-orange-600">
                 {b.courseName}
               </p>
-              <h2 className="mt-3 text-lg font-semibold text-[#072B62]">{b.name}</h2>
+              <h2 className="mt-3 text-lg font-semibold text-[#3854AC]">{b.name}</h2>
               <p className="muted mt-2">{b.code}</p>
               <div className="mt-4">
                 <Badge status={b.status} />
@@ -151,7 +152,7 @@ export default async function TeacherPage({ params }: { params: Promise<{ path?:
         }
       />
       {!section && (
-        <section className="mb-6 rounded-2xl bg-[#072B62] p-5 text-white">
+        <section className="mb-6 rounded-2xl bg-[#3854AC] p-5 text-white">
           <p className="text-sm text-blue-200">Your day at a glance</p>
           <div className="mt-3 flex items-end justify-between">
             <div>
@@ -172,7 +173,7 @@ export default async function TeacherPage({ params }: { params: Promise<{ path?:
           <article key={s.id} className="panel">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="font-semibold text-[#072B62]">{s.batchName}</h3>
+                <h3 className="font-semibold text-[#3854AC]">{s.batchName}</h3>
                 <p className="mt-1 text-xs font-semibold text-orange-600">{s.courseName}</p>
                 <p className="muted mt-1">
                   {section && `${s.date} · `}
@@ -187,7 +188,7 @@ export default async function TeacherPage({ params }: { params: Promise<{ path?:
                 <OpenSession id={s.id} teacher />
               ) : s.status !== 'cancelled' ? (
                 <Link
-                  className="rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold text-[#072B62]"
+                  className="rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold text-[#3854AC]"
                   href={`/teacher/attendance/${s.id}`}
                 >
                   {s.status === 'open' ? 'Continue attendance' : 'View attendance'}

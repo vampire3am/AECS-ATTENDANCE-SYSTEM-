@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { CommonQr } from '@/components/shared/common-qr';
 import { useRouter } from 'next/navigation';
-import { Check } from 'lucide-react';
+import { Check, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { verifyCheckinAction } from '@/app/actions';
 type Checkin = {
@@ -38,18 +38,19 @@ export function SessionCheckins({ sessionId }: { sessionId: string }) {
   return (
     <>
       <CommonQr />
-      <section className="panel mb-6">
+      <section className="panel !p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-semibold">Student QR check-in</h2>
-            <p className="muted mt-1">
-              Students use the common AECS QR. Only check-ins for this class appear here.
-            </p>
+            <h2 className="flex items-center gap-2 text-sm font-bold">
+              <UserCheck size={18} className="text-[#3854ac]" /> Student check-ins{' '}
+              <span className="badge">{rows.filter((r) => !r.verifiedAt).length} pending</span>
+            </h2>
+            <p className="muted mt-1">Confirm students you can see in the classroom.</p>
           </div>
+          <span className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400">
+            <span className="size-1.5 rounded-full bg-emerald-500" /> Updates every 5 seconds
+          </span>
         </div>
-        <p className="mt-3 text-xs text-slate-500">
-          Confirm each student’s physical presence. A scan alone does not mark attendance.
-        </p>
         {error && (
           <p role="alert" className="mt-3 text-sm text-red-600">
             {error}
@@ -59,12 +60,12 @@ export function SessionCheckins({ sessionId }: { sessionId: string }) {
           {rows.map((row) => (
             <div
               key={row.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-slate-50 p-3"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 bg-[#fafbfe] p-4"
             >
               <div>
                 <p className="text-sm font-semibold">{row.fullName}</p>
                 <p className="text-xs text-slate-500">
-                  {row.studentCode} Â·{' '}
+                  {row.studentCode} ·{' '}
                   {new Date(row.checkedInAt).toLocaleTimeString('en-GB', {
                     hour: '2-digit',
                     minute: '2-digit',
@@ -79,7 +80,6 @@ export function SessionCheckins({ sessionId }: { sessionId: string }) {
                 </span>
               ) : (
                 <Button
-                  variant="outline"
                   disabled={busy}
                   onClick={async () => {
                     setBusy(true);
@@ -107,7 +107,9 @@ export function SessionCheckins({ sessionId }: { sessionId: string }) {
             </div>
           ))}
           {!rows.length && (
-            <p className="muted">No student check-ins yet. This list updates automatically.</p>
+            <p className="rounded-xl bg-slate-50 px-4 py-5 text-center text-xs text-slate-500">
+              Waiting for students to scan the common QR and check in.
+            </p>
           )}
         </div>
       </section>

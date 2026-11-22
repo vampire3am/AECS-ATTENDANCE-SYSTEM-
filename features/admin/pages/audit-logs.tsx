@@ -32,7 +32,7 @@ export async function AuditLogsPage() {
               <p>{log.reason ?? '—'}</p>
               {Object.keys(log.metadata).length > 0 && (
                 <details className="mt-2">
-                  <summary className="cursor-pointer text-xs text-[#072B62]">View details</summary>
+                  <summary className="cursor-pointer text-xs text-[#3854AC]">View details</summary>
                   <pre className="mt-2 max-w-96 overflow-x-auto text-xs">
                     {JSON.stringify(log.metadata, null, 2)}
                   </pre>

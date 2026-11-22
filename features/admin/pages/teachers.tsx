@@ -39,7 +39,7 @@ export async function TeachersPage({ c }: PageContext) {
                 .map((a) => (
                   <Link
                     key={a.batchId}
-                    className="mr-3 inline-block text-[#072B62]"
+                    className="mr-3 inline-block text-[#3854AC]"
                     href={`/admin/batches/${a.batchId}`}
                   >
                     {a.batchName}

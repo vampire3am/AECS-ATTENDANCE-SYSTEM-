@@ -29,8 +29,9 @@ export async function AttendancePage({ actor, q, id, c }: PageContext) {
           </section>
         ) : model.session.status === 'open' ? (
           <>
-            <SessionCheckins sessionId={id} />
-            <AttendanceMarking model={{ ...model, actorId: actor.id }} />
+            <AttendanceMarking model={{ ...model, actorId: actor.id }}>
+              <SessionCheckins sessionId={id} />
+            </AttendanceMarking>
           </>
         ) : (
           <>

@@ -6,7 +6,7 @@ export default function NotFound() {
       <p className="my-5 text-slate-500">
         This record may be unavailable or the address may be incorrect.
       </p>
-      <Link href="/" className="font-semibold text-[#072B62]">
+      <Link href="/" className="font-semibold text-[#3854AC]">
         Return to workspace
       </Link>
     </div>

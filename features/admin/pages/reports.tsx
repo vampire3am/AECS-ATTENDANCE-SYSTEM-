@@ -28,7 +28,7 @@ export async function ReportsPage({ q, c }: PageContext) {
             Export Excel
           </a>
           <a
-            className="rounded-lg bg-[#072B62] px-4 py-3 text-sm font-semibold text-white"
+            className="rounded-lg bg-[#3854AC] px-4 py-3 text-sm font-semibold text-white"
             href={`/api/reports?${qs}&format=pdf`}
           >
             Export PDF
@@ -54,7 +54,7 @@ export async function ReportsPage({ q, c }: PageContext) {
             <td>
               <Link
                 href={`/admin/students/${r.student_id}`}
-                className="font-semibold text-[#072B62]"
+                className="font-semibold text-[#3854AC]"
               >
                 {r.full_name}
               </Link>

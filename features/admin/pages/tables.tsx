@@ -42,7 +42,7 @@ export function SessionTable({ sessions }: { sessions: Awaited<ReturnType<typeof
             <Badge status={r.status} />
           </td>
           <td>
-            <Link className="font-semibold text-[#072B62]" href={`/admin/attendance/${r.id}`}>
+            <Link className="font-semibold text-[#3854AC]" href={`/admin/attendance/${r.id}`}>
               View session
             </Link>
           </td>
