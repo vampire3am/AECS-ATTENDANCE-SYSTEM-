@@ -5,6 +5,15 @@ const sessionId = crypto.randomUUID(),
   token = 'a'.repeat(64);
 const valid = origin + '/check-in?session=' + sessionId + '&token=' + token;
 describe('Classroom scanner URL validation', () => {
+  it('accepts the common QR without a batch or student credential', () => {
+    expect(parseClassroomQr(origin + '/check-in', origin)).toEqual({ common: true });
+  });
+  it('rejects batch selectors and ambiguous links', () => {
+    expect(() => parseClassroomQr(valid + '&batch=' + crypto.randomUUID(), origin)).toThrow();
+    expect(() =>
+      parseClassroomQr(origin + '/check-in?batch=' + crypto.randomUUID(), origin),
+    ).toThrow();
+  });
   it('accepts an AECS classroom QR', () => {
     expect(parseClassroomQr(valid, origin)).toEqual({ sessionId, token });
   });

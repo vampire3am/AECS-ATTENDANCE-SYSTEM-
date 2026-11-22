@@ -2,13 +2,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Camera, ImagePlus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { parseClassroomQr } from '@/lib/classroom-qr';
+import { parseClassroomQr, type ClassroomScan } from '@/lib/classroom-qr';
 type Controls = { stop: () => void };
-export function StudentScanner({
-  onScan,
-}: {
-  onScan: (value: { sessionId: string; token: string }) => void;
-}) {
+export function StudentScanner({ onScan }: { onScan: (value: ClassroomScan) => void }) {
   const video = useRef<HTMLVideoElement>(null),
     controls = useRef<Controls | null>(null),
     generation = useRef(0);

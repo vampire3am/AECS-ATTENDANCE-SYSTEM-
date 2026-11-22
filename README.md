@@ -43,3 +43,5 @@ See [ARCHITECTURE.md](ARCHITECTURE.md), [DATABASE.md](DATABASE.md), [DEPLOYMENT.
 5. Teacher completes the remaining roster and submits attendance normally. Scanning alone never finalizes attendance.
 
 Students can start directly at [aecs-attendance.vercel.app/student](https://aecs-attendance.vercel.app/student): verify the private code, choose Scan classroom QR, allow the camera and scan the teacher’s QR. Guests also see this student landing at the main URL. Staff use /login. QR image upload and classroom-link entry are available when camera access is unavailable.
+
+Common attendance QR: Admin > Batches > Download QR. Print the same QR for all current and future batches. Students verify their private enrollment code, see their course/batch, and confirm check-in. Teachers must open the class and confirm physical presence; zero/multiple open classes block check-in.

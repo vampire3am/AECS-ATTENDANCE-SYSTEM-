@@ -1,4 +1,5 @@
 import { EnrollmentCode } from '@/components/shared/enrollment-code';
+import { CommonQr } from '@/components/shared/common-qr';
 import { CreateRecord } from '@/components/shared/create-record';
 import { Badge, PageHeader } from '@/components/shared/page-header';
 import { AssignmentForm, EnrollmentForms } from '@/components/shared/session-actions';
@@ -44,6 +45,7 @@ export async function BatchesPage({ actor, id, tab, c }: PageContext) {
             fields={batchFields(c.courses)}
           />
         </PageHeader>
+        <CommonQr />
         <div className="mb-6 flex flex-wrap gap-2">
           {['overview', 'students', 'schedule', 'sessions'].map((t) => (
             <Link
@@ -228,6 +230,7 @@ export async function BatchesPage({ actor, id, tab, c }: PageContext) {
           fields={batchFields(c.courses.filter((c) => c.status === 'active'))}
         />
       </PageHeader>
+      <CommonQr />
       <Table heads={['Batch', 'Course', 'Dates', 'Status', '']} empty={!c.batches.length}>
         {c.batches.map((b) => (
           <tr key={b.id}>
@@ -245,7 +248,15 @@ export async function BatchesPage({ actor, id, tab, c }: PageContext) {
               <Badge status={b.status} />
             </td>
             <td>
-              <Link href={`/admin/batches/${b.id}/students`}>Manage roster</Link>
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  className="font-semibold text-[#072B62]"
+                  href={`/admin/batches/${b.id}#common-qr`}
+                >
+                  Common attendance QR
+                </Link>
+                <Link href={`/admin/batches/${b.id}/students`}>Manage roster</Link>
+              </div>
             </td>
           </tr>
         ))}

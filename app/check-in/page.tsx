@@ -7,6 +7,8 @@ export default async function StudentCheckin({
 }) {
   const { session, token } = await searchParams;
   return (
-    <StudentPortal initialScan={session && token ? { sessionId: session, token } : undefined} />
+    <StudentPortal
+      initialScan={session && token ? { sessionId: session, token } : { common: true }}
+    />
   );
 }

@@ -72,44 +72,93 @@ export async function startCheckin(actor: Actor, id: string) {
 }
 export async function submitStudentCheckin(raw: unknown) {
   const input = z
-    .object({
-      sessionId: uuid,
-      token: tokenSchema,
-      code: z
-        .string()
-        .trim()
-        .toUpperCase()
-        .regex(/^AECS-[A-F0-9]{20}$/),
-    })
+    .union([
+      z.object({ code: enrollmentCodeInput.shape.code }).strict(),
+      z
+        .object({
+          sessionId: uuid,
+          token: tokenSchema,
+          code: z
+            .string()
+            .trim()
+            .toUpperCase()
+            .regex(/^AECS-[A-F0-9]{20}$/),
+        })
+        .strict(),
+    ])
     .parse(raw);
   return db.transaction(async (tx) => {
+    let sessionId: string;
+    if (!('sessionId' in input)) {
+      const [enrollment] = await tx
+        .select({ batchId: s.enrollments.batchId })
+        .from(s.enrollments)
+        .innerJoin(s.students, eq(s.students.id, s.enrollments.studentId))
+        .innerJoin(s.batches, eq(s.batches.id, s.enrollments.batchId))
+        .innerJoin(s.courses, eq(s.courses.id, s.enrollments.courseId))
+        .where(
+          and(
+            eq(s.enrollments.checkinCode, input.code),
+            eq(s.students.status, 'active'),
+            eq(s.batches.status, 'active'),
+            eq(s.courses.status, 'active'),
+            sql`${s.enrollments.enrolledOn}<=${localDate()}::date and (${s.enrollments.endedOn} is null or ${s.enrollments.endedOn}>${localDate()}::date)`,
+          ),
+        )
+        .limit(1);
+      invariant(enrollment, 'This enrollment code is invalid or is not currently active.', 400);
+      const sessions = await tx
+        .select({ id: s.classSessions.id })
+        .from(s.classSessions)
+        .where(
+          and(
+            eq(s.classSessions.batchId, enrollment.batchId),
+            eq(s.classSessions.sessionDate, localDate()),
+            eq(s.classSessions.status, 'open'),
+          ),
+        )
+        .limit(2);
+      invariant(
+        sessions.length > 0,
+        'Your teacher has not opened attendance for this batch today. Ask them to open the class, then try again.',
+        409,
+      );
+      invariant(
+        sessions.length === 1,
+        'More than one class is open for this batch. Ask your teacher to finalize the previous class, then try again.',
+        409,
+      );
+      sessionId = sessions[0].id;
+    } else sessionId = input.sessionId;
     const [session] = await tx
       .select()
       .from(s.classSessions)
-      .where(eq(s.classSessions.id, input.sessionId))
+      .where(eq(s.classSessions.id, sessionId))
       .for('update');
     invariant(
       session?.status === 'open' && session.sessionDate === localDate(),
       'This class is no longer accepting check-ins.',
       409,
     );
-    const [window] = await tx
-      .select()
-      .from(s.checkinWindows)
-      .where(eq(s.checkinWindows.sessionId, session.id));
-    invariant(
-      window && window.expiresAt.getTime() > Date.now(),
-      'The classroom QR has expired. Scan the current code.',
-      410,
-    );
-    invariant(
-      timingSafeEqual(
-        Buffer.from(window.tokenHash, 'hex'),
-        Buffer.from(digest(input.token), 'hex'),
-      ),
-      'The classroom QR has changed. Scan the current code.',
-      410,
-    );
+    if ('token' in input) {
+      const [window] = await tx
+        .select()
+        .from(s.checkinWindows)
+        .where(eq(s.checkinWindows.sessionId, session.id));
+      invariant(
+        window && window.expiresAt.getTime() > Date.now(),
+        'The classroom QR has expired. Scan the current code.',
+        410,
+      );
+      invariant(
+        timingSafeEqual(
+          Buffer.from(window.tokenHash, 'hex'),
+          Buffer.from(digest(input.token), 'hex'),
+        ),
+        'The classroom QR has changed. Scan the current code.',
+        410,
+      );
+    }
     const [enrollment] = await tx
       .select({ id: s.enrollments.id, studentId: s.enrollments.studentId })
       .from(s.enrollments)

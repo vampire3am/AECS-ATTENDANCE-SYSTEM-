@@ -5,6 +5,7 @@ import { GraduationCap, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StudentScanner } from './student-scanner';
 import { enrollmentCodeInput } from '@/lib/enrollment-code-input';
+import type { ClassroomScan } from '@/lib/classroom-qr';
 type Identity = {
   studentName: string;
   studentCode: string;
@@ -12,14 +13,10 @@ type Identity = {
   batchName: string;
   batchCode: string;
 };
-export function StudentPortal({
-  initialScan,
-}: {
-  initialScan?: { sessionId: string; token: string };
-}) {
+export function StudentPortal({ initialScan }: { initialScan?: ClassroomScan }) {
   const [code, setCode] = useState(''),
     [identity, setIdentity] = useState<Identity | null>(null),
-    [scan, setScan] = useState(initialScan ?? null),
+    [scan, setScan] = useState<ClassroomScan | null>(initialScan ?? { common: true }),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [done, setDone] = useState(false);
@@ -60,19 +57,17 @@ export function StudentPortal({
             One quick check-in.
           </h1>
           <p className="mt-5 max-w-md text-slate-500">
-            Verify your private enrollment code, scan your teacher’s classroom QR, and you’re ready
-            for class.
+            Scan the common AECS QR and verify your private enrollment code. We’ll find your course
+            and batch automatically.
           </p>
           <ol className="mt-8 grid gap-5 text-sm text-slate-600">
             <li>
-              <strong className="text-[#072B62]">1. Verify your code</strong>
-              <p className="mt-1">
-                Your code identifies your student, course and batch enrollment.
-              </p>
+              <strong className="text-[#072B62]">1. Scan the common AECS QR</strong>
+              <p className="mt-1">The same QR works for every course and batch.</p>
             </li>
             <li>
-              <strong className="text-[#072B62]">2. Scan the classroom QR</strong>
-              <p className="mt-1">Use the scanner here or your phone’s camera.</p>
+              <strong className="text-[#072B62]">2. Verify your enrollment code</strong>
+              <p className="mt-1">Your private code identifies your course and batch.</p>
             </li>
             <li>
               <strong className="text-[#072B62]">3. Let your teacher confirm</strong>
@@ -99,7 +94,7 @@ export function StudentPortal({
                   setDone(false);
                   setIdentity(null);
                   setCode('');
-                  setScan(null);
+                  setScan({ common: true });
                 }}
               >
                 Check in another enrollment
@@ -113,7 +108,7 @@ export function StudentPortal({
               </p>
               {scan && (
                 <p className="mt-4 rounded-lg bg-blue-50 p-3 text-sm text-[#072B62]">
-                  Classroom QR received. Enter your enrollment code to continue.
+                  Common AECS check-in. Your private code identifies the correct course and batch.
                 </p>
               )}
               <form
@@ -180,7 +175,8 @@ export function StudentPortal({
               {scan ? (
                 <>
                   <p className="text-sm text-slate-600">
-                    Classroom QR scanned. Confirm your check-in for this class.
+                    Confirm your check-in for the course and batch shown above. Your teacher must
+                    open today’s class first.
                   </p>
                   <Button
                     className="mt-5 w-full"
@@ -189,11 +185,14 @@ export function StudentPortal({
                       setBusy(true);
                       setError('');
                       try {
-                        await post('/api/check-in', { ...scan, code: code.trim().toUpperCase() });
+                        await post('/api/check-in', {
+                          ...('common' in scan ? {} : scan),
+                          code: code.trim().toUpperCase(),
+                        });
                         setDone(true);
                       } catch (e) {
                         setError(e instanceof Error ? e.message : 'Unable to connect.');
-                        setScan(null);
+                        setScan({ common: true });
                       } finally {
                         setBusy(false);
                       }
@@ -202,14 +201,14 @@ export function StudentPortal({
                     {busy ? 'Checking in…' : 'Confirm my check-in'}
                   </Button>
                   <Button className="mt-2 w-full" variant="ghost" onClick={() => setScan(null)}>
-                    Scan a different classroom QR
+                    Scan an optional session QR
                   </Button>
                 </>
               ) : (
                 <>
                   <h3 className="font-semibold text-[#072B62]">Scan your classroom QR</h3>
                   <p className="muted mt-2">
-                    Ask your teacher to display today’s QR and allow camera access when prompted.
+                    Scan the common AECS QR or a session QR displayed by your teacher.
                   </p>
                   <StudentScanner
                     onScan={(value) => {

@@ -1,4 +1,5 @@
 import { SessionCheckins } from '@/components/attendance/check-ins';
+import { CommonQr } from '@/components/shared/common-qr';
 import { AttendanceMarking } from '@/components/attendance/marking';
 import { Badge, PageHeader } from '@/components/shared/page-header';
 import { OpenSession } from '@/components/shared/session-actions';
@@ -74,6 +75,7 @@ export default async function TeacherPage({ params }: { params: Promise<{ path?:
     return (
       <>
         <PageHeader title={batch.name} description={batch.courseName} />
+        <CommonQr />
         <section className="panel mb-5">
           <h2 className="font-semibold">Weekly timetable</h2>
           {schedules.map((r) => (

@@ -223,6 +223,38 @@ describe.skipIf(!enabled)('Live PostgreSQL attendance invariants', () => {
         .status,
     ).toBeNull();
   });
+  it('routes the common QR by private enrollment and rejects ambiguous open classes', async () => {
+    await submitStudentCheckin({ code: enrollmentCode });
+    expect(await listCheckins(teacher, qrSessionId)).toHaveLength(1);
+    const [original] = await db
+      .select()
+      .from(s.enrollments)
+      .where(and(eq(s.enrollments.batchId, batchId), eq(s.enrollments.studentId, studentIds[0])));
+    await submitStudentCheckin({ code: original.checkinCode });
+    expect(await listCheckins(teacher, sessionId)).toHaveLength(1);
+    expect(await listCheckins(teacher, qrSessionId)).toHaveLength(1);
+    await expect(submitStudentCheckin({ code: enrollmentCode, batchId })).rejects.toBeDefined();
+    await expect(submitStudentCheckin({ code: 'AECS-' + '0'.repeat(20) })).rejects.toMatchObject({
+      status: 400,
+    });
+    const [extra] = await actorTransaction(admin, (tx) =>
+      tx
+        .insert(s.classSessions)
+        .values({
+          batchId: qrBatchId,
+          sessionDate: today,
+          startTime: '15:00',
+          endTime: '16:00',
+          createdBy: admin.id,
+        })
+        .returning(),
+    );
+    await openSession(teacher, extra.id);
+    await expect(submitStudentCheckin({ code: enrollmentCode })).rejects.toMatchObject({
+      status: 409,
+    });
+    await cancelSession(admin, extra.id, 'Remove ambiguous integration test class');
+  });
   it('blocks wrong-batch codes, future enrollment, refreshed and expired QR tokens', async () => {
     const [future] = await db
       .select()
@@ -300,6 +332,9 @@ describe.skipIf(!enabled)('Live PostgreSQL attendance invariants', () => {
       true,
     );
     await expect(startCheckin(teacher, qrSessionId)).rejects.toMatchObject({ status: 409 });
+    await expect(submitStudentCheckin({ code: enrollmentCode })).rejects.toMatchObject({
+      status: 409,
+    });
     await expect(
       submitStudentCheckin({
         sessionId: qrSessionId,
