@@ -1,4 +1,4 @@
-const CACHE = 'aecs-shell-v2';
+const CACHE = 'aecs-shell-v3-reset-20261122';
 self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
@@ -20,6 +20,30 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) =>
   event.waitUntil(
     (async () => {
+      // Purge legacy roster/draft data after the explicitly requested live-data reset.
+      await new Promise((resolve, reject) => {
+        const request = indexedDB.open('aecs-attend');
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          const db = request.result;
+          const stores = Array.from(db.objectStoreNames);
+          if (!stores.length) {
+            db.close();
+            resolve();
+            return;
+          }
+          const tx = db.transaction(stores, 'readwrite');
+          for (const store of stores) tx.objectStore(store).clear();
+          tx.oncomplete = () => {
+            db.close();
+            resolve();
+          };
+          tx.onerror = () => {
+            db.close();
+            reject(tx.error);
+          };
+        };
+      });
       for (const name of await caches.keys())
         if (name.startsWith('aecs-shell-') && name !== CACHE) await caches.delete(name);
       await self.clients.claim();

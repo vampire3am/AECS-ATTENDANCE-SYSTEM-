@@ -36,7 +36,7 @@ interface OfflineDB extends DBSchema {
 }
 export const draftKey = (actorId: string, sessionId: string) => `${actorId}:${sessionId}`;
 export const offlineDb = () =>
-  openDB<OfflineDB>('aecs-attend', 1, {
+  openDB<OfflineDB>('aecs-attend-reset-20261122', 1, {
     upgrade(db) {
       db.createObjectStore('sessions');
       db.createObjectStore('drafts', { keyPath: 'key' });

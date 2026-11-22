@@ -1,7 +1,23 @@
 import 'fake-indexeddb/auto';
+import { openDB } from 'idb';
 import { describe, expect, it } from 'vitest';
 import { draftKey, offlineDb, type Draft, type SessionModel } from '../lib/offline';
 describe('Offline draft storage', () => {
+  it('does not expose rosters or drafts saved before the authorized live-data reset', async () => {
+    const legacy = await openDB('aecs-attend', 1, {
+      upgrade(db) {
+        db.createObjectStore('sessions');
+        db.createObjectStore('drafts');
+      },
+    });
+    await legacy.put('sessions', { batch: { name: 'Deleted batch' } }, 'deleted');
+    await legacy.put('drafts', { records: ['deleted'] }, 'deleted');
+    const current = await offlineDb();
+    expect(await current.getAll('sessions')).toEqual([]);
+    expect(await current.getAll('drafts')).toEqual([]);
+    legacy.close();
+    current.close();
+  });
   it('persists drafts across database reopen and isolates staff accounts', async () => {
     const actor = crypto.randomUUID(),
       sessionId = crypto.randomUUID();
