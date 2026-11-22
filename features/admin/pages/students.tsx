@@ -5,11 +5,12 @@ import { db } from '@/lib/db';
 import * as s from '@/lib/db/schema';
 import { studentFields } from '@/lib/form-fields';
 import { reportRows, studentList } from '@/lib/services/queries';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, sql, inArray } from 'drizzle-orm';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { PageContext } from './context';
 import { Table } from './tables';
+import { localDate } from '@/lib/utils';
 export async function StudentsPage({ q, id }: PageContext) {
   if (id === 'new')
     return (
@@ -76,7 +77,7 @@ export async function StudentsPage({ q, id }: PageContext) {
             </section>
           ))}
         </div>
-        <h2 className="mb-3 font-semibold">Enrollments</h2>
+        <h2 className="mb-3 font-semibold">Course/batch check-in codes</h2>
         <Table
           heads={['Batch / enrollment code', 'From', 'Until', 'Status']}
           empty={!enrollment.length}
@@ -116,6 +117,29 @@ export async function StudentsPage({ q, id }: PageContext) {
   const search = typeof q.search === 'string' ? q.search.slice(0, 150) : '';
   const status = typeof q.status === 'string' ? q.status : '';
   const list = await studentList(search, page, status);
+  const currentEnrollments = list.rows.length
+    ? await db
+        .select({
+          studentId: s.enrollments.studentId,
+          code: s.enrollments.checkinCode,
+          courseName: s.courses.name,
+          batchName: s.batches.name,
+        })
+        .from(s.enrollments)
+        .innerJoin(s.batches, eq(s.batches.id, s.enrollments.batchId))
+        .innerJoin(s.courses, eq(s.courses.id, s.enrollments.courseId))
+        .where(
+          and(
+            inArray(
+              s.enrollments.studentId,
+              list.rows.map((r) => r.id),
+            ),
+            sql`${s.enrollments.enrolledOn}<=${localDate()}::date and (${s.enrollments.endedOn} is null or ${s.enrollments.endedOn}>${localDate()}::date)`,
+          ),
+        )
+        .orderBy(s.courses.name, s.batches.name)
+        .limit(500)
+    : [];
   return (
     <>
       <PageHeader
@@ -144,8 +168,20 @@ export async function StudentsPage({ q, id }: PageContext) {
         </select>
         <button className="rounded-lg bg-[#072B62] px-5 py-2 text-white">Search</button>
       </form>
+      <p className="mb-4 rounded-lg bg-blue-50 p-3 text-sm text-[#072B62]">
+        Give students the private <strong>Enrollment &amp; check-in code</strong> for their course
+        and batch. The Student ID is for administration and cannot be used to check in.
+      </p>
       <Table
-        heads={['Student', 'Student code', 'Phone', 'Joined', 'Status', '']}
+        heads={[
+          'Student',
+          'Student ID',
+          'Enrollment & check-in code',
+          'Phone',
+          'Joined',
+          'Status',
+          '',
+        ]}
         empty={!list.rows.length}
       >
         {list.rows.map((r) => (
@@ -156,7 +192,33 @@ export async function StudentsPage({ q, id }: PageContext) {
               </Link>
               <p className="text-xs text-slate-400">{r.email}</p>
             </td>
-            <td>{r.studentCode}</td>
+            <td>
+              {r.studentCode}
+              <p className="mt-1 text-xs text-slate-400">Not for check-in</p>
+            </td>
+            <td>
+              {currentEnrollments
+                .filter((e) => e.studentId === r.id)
+                .map((e) => (
+                  <div className="mb-2" key={e.code}>
+                    <p className="text-xs font-semibold text-slate-600">
+                      {e.courseName} · {e.batchName}
+                    </p>
+                    <EnrollmentCode code={e.code} />
+                  </div>
+                ))}
+              {!currentEnrollments.some((e) => e.studentId === r.id) && (
+                <div>
+                  <p className="text-sm text-amber-700">No active enrollment</p>
+                  <Link
+                    className="inline-block min-h-10 py-2 text-xs font-semibold text-[#072B62]"
+                    href={`/admin/students/${r.id}`}
+                  >
+                    View enrollments
+                  </Link>
+                </div>
+              )}
+            </td>
             <td>{r.phone}</td>
             <td>{r.joinedOn}</td>
             <td>

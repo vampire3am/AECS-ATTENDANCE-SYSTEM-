@@ -1,3 +1,4 @@
+import { enrollmentCodeInput } from '@/lib/enrollment-code-input';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
@@ -10,15 +11,7 @@ import { uuid } from '@/lib/validations';
 const tokenSchema = z.string().regex(/^[a-f0-9]{64}$/);
 const digest = (value: string) => createHash('sha256').update(value).digest('hex');
 export async function verifyEnrollmentCode(raw: unknown) {
-  const { code } = z
-    .object({
-      code: z
-        .string()
-        .trim()
-        .toUpperCase()
-        .regex(/^AECS-[A-F0-9]{20}$/),
-    })
-    .parse(raw);
+  const { code } = enrollmentCodeInput.parse(raw);
   const today = localDate();
   const [enrollment] = await db
     .select({

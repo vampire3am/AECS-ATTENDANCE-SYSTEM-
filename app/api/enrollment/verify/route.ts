@@ -17,7 +17,7 @@ export async function POST(request: Request) {
           error instanceof AppError
             ? error.message
             : error instanceof ZodError
-              ? 'Enter your private enrollment code.'
+              ? (error.issues[0]?.message ?? 'Enter your private enrollment code.')
               : 'Unable to verify this code. Please ask your teacher.',
       },
       {

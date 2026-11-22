@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { GraduationCap, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StudentScanner } from './student-scanner';
+import { enrollmentCodeInput } from '@/lib/enrollment-code-input';
 type Identity = {
   studentName: string;
   studentCode: string;
@@ -119,6 +120,11 @@ export function StudentPortal({
                 className="mt-6 grid gap-4"
                 onSubmit={async (e) => {
                   e.preventDefault();
+                  const parsed = enrollmentCodeInput.safeParse({ code });
+                  if (!parsed.success) {
+                    setError(parsed.error.issues[0].message);
+                    return;
+                  }
                   setBusy(true);
                   setError('');
                   try {
