@@ -25,3 +25,5 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 Public URL is https://aecs-attendance.vercel.app. User explicitly requested no Vercel account gate; keep app-level staff authentication enforced.
 
 Student QR check-in is authorized: each enrollment has a unique immutable private random code bound to student/course/batch. Staff open two-minute classroom QR windows. Student scans create pending requests only; assigned teacher confirmation marks present and increments the session version. Transfers issue new codes. Do not expose enrollment codes to public roster APIs or treat a scan as proof of physical presence.
+
+Public student entry: guests at / and all users at /student reach the StudentPortal. The private enrollment code is verified via rate-limited POST /api/enrollment/verify before enabling the in-app QR camera scanner. Camera decoding uses a lazily loaded @zxing/browser module with local image and link fallbacks; only same-origin /check-in QR URLs are accepted. Permissions-Policy allows camera=(self). Codes stay in component memory and are revalidated at check-in. Staff retain /login and role-protected routes.

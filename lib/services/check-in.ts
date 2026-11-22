@@ -9,6 +9,42 @@ import { localDate } from '@/lib/utils';
 import { uuid } from '@/lib/validations';
 const tokenSchema = z.string().regex(/^[a-f0-9]{64}$/);
 const digest = (value: string) => createHash('sha256').update(value).digest('hex');
+export async function verifyEnrollmentCode(raw: unknown) {
+  const { code } = z
+    .object({
+      code: z
+        .string()
+        .trim()
+        .toUpperCase()
+        .regex(/^AECS-[A-F0-9]{20}$/),
+    })
+    .parse(raw);
+  const today = localDate();
+  const [enrollment] = await db
+    .select({
+      studentName: s.students.fullName,
+      studentCode: s.students.studentCode,
+      courseName: s.courses.name,
+      batchName: s.batches.name,
+      batchCode: s.batches.code,
+    })
+    .from(s.enrollments)
+    .innerJoin(s.students, eq(s.students.id, s.enrollments.studentId))
+    .innerJoin(s.batches, eq(s.batches.id, s.enrollments.batchId))
+    .innerJoin(s.courses, eq(s.courses.id, s.enrollments.courseId))
+    .where(
+      and(
+        eq(s.enrollments.checkinCode, code),
+        eq(s.students.status, 'active'),
+        eq(s.batches.status, 'active'),
+        eq(s.courses.status, 'active'),
+        sql`${s.enrollments.enrolledOn}<=${today}::date and (${s.enrollments.endedOn} is null or ${s.enrollments.endedOn}>${today}::date)`,
+      ),
+    )
+    .limit(1);
+  invariant(enrollment, 'This enrollment code is invalid or is not currently active.', 400);
+  return enrollment;
+}
 export async function startCheckin(actor: Actor, id: string) {
   uuid.parse(id);
   return actorTransaction(actor, async (tx) => {
@@ -179,15 +215,13 @@ export async function verifyCheckin(actor: Actor, id: string) {
       .update(s.classSessions)
       .set({ version: session.version + 1 })
       .where(eq(s.classSessions.id, session.id));
-    await tx
-      .insert(s.auditLogs)
-      .values({
-        actorId: actor.id,
-        action: 'student_checkin_verified',
-        entityType: 'class_session',
-        entityId: session.id,
-        metadata: { studentId: checkin.studentId, checkinId: id },
-      });
+    await tx.insert(s.auditLogs).values({
+      actorId: actor.id,
+      action: 'student_checkin_verified',
+      entityType: 'class_session',
+      entityId: session.id,
+      metadata: { studentId: checkin.studentId, checkinId: id },
+    });
     return { verified: true };
   });
 }

@@ -41,3 +41,5 @@ See [ARCHITECTURE.md](ARCHITECTURE.md), [DATABASE.md](DATABASE.md), [DEPLOYMENT.
 3. Student scans it using their phone camera and enters that enrollment code. The QR expires after two minutes and refreshes while displayed.
 4. Teacher sees incoming requests and selects **Confirm present** after verifying the student is in class.
 5. Teacher completes the remaining roster and submits attendance normally. Scanning alone never finalizes attendance.
+
+Students can start directly at [aecs-attendance.vercel.app/student](https://aecs-attendance.vercel.app/student): verify the private code, choose Scan classroom QR, allow the camera and scan the teacher’s QR. Guests also see this student landing at the main URL. Staff use /login. QR image upload and classroom-link entry are available when camera access is unavailable.

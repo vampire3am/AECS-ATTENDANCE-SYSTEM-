@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { LoginForm } from './sign-in';
 export default function Login() {
   return (
@@ -30,6 +31,12 @@ export default function Login() {
           <h2 className="page-title">Welcome back</h2>
           <p className="mt-3 text-slate-500">Sign in to manage your classes and attendance.</p>
           <LoginForm />
+          <Link
+            href="/student"
+            className="mt-6 block rounded-lg border border-slate-200 p-3 text-center text-sm font-semibold text-[#072B62]"
+          >
+            Student? Verify your code and scan here
+          </Link>
           <p className="mt-8 text-center text-xs text-slate-400">
             Secure access for AECS staff only.
           </p>

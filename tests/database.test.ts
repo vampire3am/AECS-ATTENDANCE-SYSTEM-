@@ -1,3 +1,4 @@
+import { verifyEnrollmentCode } from '../lib/services/check-in';
 import { hash } from '@node-rs/argon2';
 import { authenticateStaff } from '../lib/auth/credentials';
 import { and, eq, sql } from 'drizzle-orm';
@@ -193,6 +194,16 @@ describe.skipIf(!enabled)('Live PostgreSQL attendance invariants', () => {
       .from(s.enrollments)
       .where(eq(s.enrollments.batchId, qrBatchId));
     enrollmentCode = enrollment.find((e) => e.studentId === studentIds[0])!.checkinCode;
+    const identity = await verifyEnrollmentCode({ code: enrollmentCode });
+    expect(identity.studentCode).toBeDefined();
+    expect(identity.batchName).toBe('QR test batch');
+    expect(identity).not.toHaveProperty('phone');
+    expect(identity).not.toHaveProperty('checkinCode');
+    await expect(
+      verifyEnrollmentCode({
+        code: enrollment.find((e) => e.studentId === studentIds[4])!.checkinCode,
+      }),
+    ).rejects.toMatchObject({ status: 400 });
     expect(new Set(enrollment.map((e) => e.checkinCode)).size).toBe(enrollment.length);
     expect(enrollmentCode).toMatch(/^AECS-[A-F0-9]{20}$/);
     await expect(startCheckin(other, qrSessionId)).rejects.toMatchObject({ status: 403 });
