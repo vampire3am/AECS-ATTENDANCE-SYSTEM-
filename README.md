@@ -2,7 +2,7 @@
 
 Staff attendance workspace for Abroad Education Consultancy Services, Nepal. Administrators manage courses, batches, schedules, staff and fixed enrollments. Teachers open scheduled classes, mark a roster and submit attendance directly. There is no student login or approval queue.
 
-**Status:** implementation and backend verification are available; browser acceptance testing and production release are pending. Do not treat this repository as launch-approved.
+**Live acceptance environment:** [https://aecs-attend-staging-aashish-33b8.vercel.app](https://aecs-attend-staging-aashish-33b8.vercel.app). Vercel hosts the app and Neon retains the database. Authenticated HTTP smoke checks pass; browser/mobile/offline acceptance is still pending. Do not treat the deployment as completion of every launch check.
 
 ## Stack
 

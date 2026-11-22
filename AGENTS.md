@@ -10,7 +10,7 @@ Commands: pnpm dev/build/typecheck/lint/test/db:generate/db:migrate. `scripts/bo
 
 Current modules: administration screens live under `features/admin/pages`; server business logic is in `lib/services`; Auth.js credentials are in `lib/auth/credentials.ts`. IndexedDB data is actor-scoped and conflicts must be preserved/exportable. Runtime traffic uses a restricted pooled role, while each environment has a separate direct migration URL. Integration tests require an explicit isolated test-branch marker.
 
-Deployment constraint observed in this session: the Vercel connector returned a Production target for an explicit Preview request. That attempt was cancelled before READY. Do not repeat that path until environment targeting is understood. Browser acceptance testing is still blocked by the browser permission gate. See PROGRESS.md and DEPLOYMENT.md.
+Current live environment: user explicitly authorized Vercel hosting on 2026-11-22. The Production slot of project aecs-attend-staging uses the isolated Neon staging branch. Do not migrate or switch to the reserved Neon production branch without authorization. Authenticated live HTTP smoke checks pass; browser/mobile/offline acceptance remains outstanding. See PROGRESS.md and DEPLOYMENT.md.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
