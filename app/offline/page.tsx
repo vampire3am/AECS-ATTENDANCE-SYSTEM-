@@ -21,7 +21,7 @@ export default function Offline() {
   return (
     <main className="mx-auto max-w-2xl p-4 pb-24">
       {selected ? (
-        <AttendanceMarking model={selected} />
+        <AttendanceMarking model={selected} offline />
       ) : (
         <>
           <h1 className="page-title">Offline workspace</h1>

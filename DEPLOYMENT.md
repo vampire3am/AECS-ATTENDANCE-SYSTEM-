@@ -2,6 +2,8 @@
 
 Vercel staging project: `aecs-attend-staging` (`prj_vLiHMAwmlGtGhkDUrR8OloIma0Fk`), team `Aashish`. Node.js 24, Next.js framework, Singapore functions. Deployment protection is preserved. Preview secrets use the isolated Neon staging runtime role. Owner URLs and local access/password files must never be deployed.
 
+The initial connector request explicitly specified Preview but returned `target: production`; it was cancelled before READY. There is no active deployment. Do not retry that path until the connector's environment targeting can be verified; Preview credentials are intentionally absent from Production.
+
 ## Environment separation
 
 | Environment       | Database                   | Credentials                                  |

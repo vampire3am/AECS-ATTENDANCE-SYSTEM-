@@ -8,6 +8,10 @@ Never log/commit credentials. Do not deploy production without explicit approval
 
 Commands: pnpm dev/build/typecheck/lint/test/db:generate/db:migrate. `scripts/bootstrap.ts` creates the first admin from process environment, never a default password.
 
+Current modules: administration screens live under `features/admin/pages`; server business logic is in `lib/services`; Auth.js credentials are in `lib/auth/credentials.ts`. IndexedDB data is actor-scoped and conflicts must be preserved/exportable. Runtime traffic uses a restricted pooled role, while each environment has a separate direct migration URL. Integration tests require an explicit isolated test-branch marker.
+
+Deployment constraint observed in this session: the Vercel connector returned a Production target for an explicit Preview request. That attempt was cancelled before READY. Do not repeat that path until environment targeting is understood. Browser acceptance testing is still blocked by the browser permission gate. See PROGRESS.md and DEPLOYMENT.md.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know

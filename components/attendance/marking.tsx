@@ -5,8 +5,17 @@ import { Dialog } from '@/components/ui/dialog';
 import { draftKey, offlineDb, type Draft, type RosterRow, type SessionModel } from '@/lib/offline';
 import { CheckCheck, CheckCircle2, LockKeyhole, Search, WifiOff } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 const statuses = ['present', 'absent', 'late', 'excused'] as const;
-export function AttendanceMarking({ model }: { model: SessionModel }) {
+export function AttendanceMarking({
+  model,
+  offline = false,
+}: {
+  model: SessionModel;
+  offline?: boolean;
+}) {
+  const router = useRouter();
   const [rows, setRows] = useState(model.records);
   const [search, setSearch] = useState('');
   const [online, setOnline] = useState(true);
@@ -38,6 +47,7 @@ export function AttendanceMarking({ model }: { model: SessionModel }) {
     window.addEventListener('offline', connectivity);
     void (async () => {
       try {
+        op.current = crypto.randomUUID();
         localStorage.setItem('aecs-offline-actor', model.actorId);
         const db = await offlineDb();
         const pending = await db.get('drafts', key);
@@ -64,6 +74,7 @@ export function AttendanceMarking({ model }: { model: SessionModel }) {
         setReady(true);
       } catch {
         setError('Local storage is unavailable. Offline changes cannot be saved.');
+        setReady(true);
       }
     })();
     return () => {
@@ -147,6 +158,7 @@ export function AttendanceMarking({ model }: { model: SessionModel }) {
     setError('');
     const sendingRevision = revision.current;
     const snapshot = rowsRef.current;
+    let confirmed = false;
     try {
       const result = await attendanceAction(
         {
@@ -161,9 +173,16 @@ export function AttendanceMarking({ model }: { model: SessionModel }) {
       );
       if (!result.ok) {
         setError(result.error);
-        if (result.status === 409) setSync('CONFLICT');
+        if (result.status === 409) {
+          setSync('CONFLICT');
+          if (!offline) router.refresh();
+        }
         return;
       }
+      confirmed = true;
+      setSync('SYNCED');
+      if (result.data.status === 'submitted') setLocked(true);
+      setConfirm(false);
       version.current = result.data.version;
       const db = await offlineDb();
       const stillCurrent = revision.current === sendingRevision;
@@ -186,7 +205,11 @@ export function AttendanceMarking({ model }: { model: SessionModel }) {
       if (result.data.status === 'submitted') setLocked(true);
       setConfirm(false);
     } catch {
-      setError('No server confirmation. Your draft is preserved; retry when connected.');
+      setError(
+        confirmed
+          ? 'Server confirmed attendance, but the local cache could not be updated.'
+          : 'No server confirmation. Your draft is preserved; retry when connected.',
+      );
     } finally {
       setBusy(false);
     }
@@ -210,7 +233,7 @@ export function AttendanceMarking({ model }: { model: SessionModel }) {
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [online, ready, sync, busy, locked]);
+  }, [online, ready, sync, busy, locked, rows]);
   const totals = Object.fromEntries(
     statuses.map((s) => [s, rows.filter((r) => r.status === s).length]),
   );
@@ -294,9 +317,17 @@ export function AttendanceMarking({ model }: { model: SessionModel }) {
           <Button variant="outline" onClick={() => void exportDraft()}>
             Export saved draft
           </Button>
-          <Button variant="outline" onClick={() => void acceptServerCopy()}>
-            Preserve draft and use server copy
-          </Button>
+          {offline ? (
+            <Button asChild variant="outline">
+              <Link href={`/teacher/attendance/${model.session.id}`}>
+                Load current server session
+              </Link>
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={() => void acceptServerCopy()}>
+              Preserve draft and use server copy
+            </Button>
+          )}
         </div>
       )}
       <div className="space-y-2">
