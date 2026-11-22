@@ -2,7 +2,7 @@
 
 Vercel staging project: `aecs-attend-staging` (`prj_vLiHMAwmlGtGhkDUrR8OloIma0Fk`), team `Aashish`. Node.js 24, Next.js framework, Singapore functions. The user explicitly requested public access: Vercel Authentication is disabled, while AECS staff authentication remains required for all application data. Preview and the authorized live slot use the isolated Neon staging runtime role. Owner URLs and local access/password files must never be deployed.
 
-Live URL: https://aecs-attendance.vercel.app/login. The user explicitly authorized this live deployment on 2026-11-22. Deployment dpl_5ixQ2ojyejVCD3dhzA37X3i6Nmo3 is READY, using source 791d296 and the staging Neon database. The earlier mismatched Preview request was cancelled; the current deployment deliberately uses this staging project’s Production slot.
+Live URL: https://aecs-attendance.vercel.app/login. The user explicitly authorized this live deployment on 2026-11-22. Deployment dpl_D4iurMHNRnAXrv3a91Y8g88EeLXM is READY, using source 4476a75 and the staging Neon database. The earlier mismatched Preview request was cancelled; the current deployment deliberately uses this staging project’s Production slot.
 
 ## Environment separation
 
@@ -35,4 +35,6 @@ For production: first validate migrations on an isolated branch; take a verified
 
 Verified live over authenticated HTTP: credential sign-in, session cookie, nine admin screens, teacher home and Excel/PDF signatures. These checks do not replace browser/mobile interaction and offline acceptance tests.
 
-QR check-in release: source 791d296; migrations 0004–0005 applied before deployment. All 31 tests and live HTTP smoke checks pass. Real-device QR scanning and mobile visual acceptance remain to be checked.
+QR check-in release: source 4476a75; migrations 0004–0005 applied before deployment. All 31 tests and live HTTP smoke checks pass. Real-device QR scanning and mobile visual acceptance remain to be checked.
+
+Student landing/scanner release: source 4476a75; public /student plus guest home and /check-in verification flow deployed. In-app QR camera decoding, image upload and classroom-link fallback are available after private-code verification. All 37 tests and live HTTP regression checks pass. Physical camera scanning still requires real-device acceptance.
