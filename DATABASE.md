@@ -16,9 +16,13 @@ The Drizzle schema is in `lib/db/schema.ts`. Versioned migrations are in `drizzl
 | attendance_records  | Unique session/student snapshot and attendance status                             |
 | app_settings        | Singleton organization policy                                                     |
 | audit_logs          | Append-only administrative/security/correction history                            |
-| login_attempts      | Persistent login rate-limit counters                                              |
+| login_attempts      | Persistent login/check-in rate-limit counters                                     |
+| checkin_windows     | Hashed, short-lived classroom QR tokens for open sessions                         |
+| student_checkins    | Unique session/student check-in requests and audited staff verification           |
 
 Constraints include unique student codes/email, unique course/batch codes, composite batch/course foreign keys, one active student/course membership, overlap rejection for historical enrollment intervals, ISO weekday/time/date checks, a unique class slot, a unique attendance row, singleton settings and bounded attendance percentages. Important query keys have indexes. Enrollment and attendance operations acquire row locks; transactions use node-postgres through Drizzle, not the stateless Neon HTTP driver.
+
+Migrations 0004–0005 add and backfill a unique immutable private check-in code on every enrollment, QR windows and check-in requests. Database triggers enforce roster/enrollment binding and staff-only verification while sessions are open. Transferring a student creates a new enrollment and therefore a new code; historical enrollment codes stay attached to their original batch/course.
 
 Runtime traffic uses `aecs_runtime` through Neon's pooler. It has no schema ownership, table deletion, audit mutation or DDL privileges. Owner credentials are direct connections used only for migration and operator provisioning. `scripts/provision-runtime.ts` refuses to rotate an existing role automatically. Pass an env-file path when provisioning staging: `node scripts/with-env.mjs .env.staging scripts/provision-runtime.ts .env.staging`.
 

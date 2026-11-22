@@ -23,3 +23,5 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 <!-- END:nextjs-agent-rules -->
 
 Public URL is https://aecs-attendance.vercel.app. User explicitly requested no Vercel account gate; keep app-level staff authentication enforced.
+
+Student QR check-in is authorized: each enrollment has a unique immutable private random code bound to student/course/batch. Staff open two-minute classroom QR windows. Student scans create pending requests only; assigned teacher confirmation marks present and increments the session version. Transfers issue new codes. Do not expose enrollment codes to public roster APIs or treat a scan as proof of physical presence.

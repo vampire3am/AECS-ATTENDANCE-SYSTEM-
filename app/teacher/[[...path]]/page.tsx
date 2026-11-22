@@ -1,3 +1,4 @@
+import { SessionCheckins } from '@/components/attendance/check-ins';
 import { AttendanceMarking } from '@/components/attendance/marking';
 import { Badge, PageHeader } from '@/components/shared/page-header';
 import { OpenSession } from '@/components/shared/session-actions';
@@ -29,7 +30,10 @@ export default async function TeacherPage({ params }: { params: Promise<{ path?:
         <OpenSession id={id} teacher />
       </>
     ) : (
-      <AttendanceMarking model={{ ...model, actorId: actor.id }} />
+      <>
+        {model.session.status === 'open' && <SessionCheckins sessionId={id} />}
+        <AttendanceMarking model={{ ...model, actorId: actor.id }} />
+      </>
     );
   }
   if (section === 'profile')

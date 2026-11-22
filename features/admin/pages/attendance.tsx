@@ -1,3 +1,4 @@
+import { SessionCheckins } from '@/components/attendance/check-ins';
 import { ReportFilters } from '@/components/admin/report-filters';
 import { AttendanceMarking } from '@/components/attendance/marking';
 import { Badge, PageHeader } from '@/components/shared/page-header';
@@ -27,7 +28,10 @@ export async function AttendancePage({ actor, q, id, c }: PageContext) {
             <OpenSession id={id} />
           </section>
         ) : model.session.status === 'open' ? (
-          <AttendanceMarking model={{ ...model, actorId: actor.id }} />
+          <>
+            <SessionCheckins sessionId={id} />
+            <AttendanceMarking model={{ ...model, actorId: actor.id }} />
+          </>
         ) : (
           <>
             <Badge status={model.session.status} />

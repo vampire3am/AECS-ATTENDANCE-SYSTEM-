@@ -71,6 +71,11 @@ export function AttendanceMarking({
             setSync(pending.sync);
           }
         }
+        if (!pending || pending.sync === 'SYNCED') {
+          setRows(model.records);
+          version.current = model.session.version;
+          setSync('SYNCED');
+        }
         setReady(true);
       } catch {
         setError('Local storage is unavailable. Offline changes cannot be saved.');

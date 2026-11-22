@@ -112,6 +112,10 @@ export const enrollments = pgTable(
       .references(() => students.id),
     batchId: uuid('batch_id').notNull(),
     courseId: uuid('course_id').notNull(),
+    checkinCode: text('checkin_code')
+      .notNull()
+      .unique()
+      .default(sql`'AECS-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 20))`),
     enrolledOn: date('enrolled_on').notNull(),
     endedOn: date('ended_on'),
     status: enrollmentStatus('status').notNull().default('active'),
@@ -270,3 +274,39 @@ export const loginAttempts = pgTable('login_attempts', {
   attempts: integer('attempts').notNull().default(0),
   windowStart: timestamp('window_start', { withTimezone: true }).notNull().defaultNow(),
 });
+export const checkinWindows = pgTable('checkin_windows', {
+  sessionId: uuid('session_id')
+    .primaryKey()
+    .references(() => classSessions.id),
+  tokenHash: text('token_hash').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  openedBy: uuid('opened_by')
+    .notNull()
+    .references(() => profiles.id),
+});
+export const studentCheckins = pgTable(
+  'student_checkins',
+  {
+    id: id(),
+    sessionId: uuid('session_id')
+      .notNull()
+      .references(() => classSessions.id),
+    studentId: uuid('student_id')
+      .notNull()
+      .references(() => students.id),
+    enrollmentId: uuid('enrollment_id')
+      .notNull()
+      .references(() => enrollments.id),
+    checkedInAt: timestamp('checked_in_at', { withTimezone: true }).notNull().defaultNow(),
+    verifiedBy: uuid('verified_by').references(() => profiles.id),
+    verifiedAt: timestamp('verified_at', { withTimezone: true }),
+  },
+  (t) => [
+    unique('checkin_session_student_key').on(t.sessionId, t.studentId),
+    index('checkin_session_idx').on(t.sessionId),
+    check(
+      'checkin_verification_fields',
+      sql`(${t.verifiedBy} is null) = (${t.verifiedAt} is null)`,
+    ),
+  ],
+);

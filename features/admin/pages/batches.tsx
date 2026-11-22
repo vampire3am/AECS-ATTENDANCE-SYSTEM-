@@ -1,3 +1,4 @@
+import { EnrollmentCode } from '@/components/shared/enrollment-code';
 import { CreateRecord } from '@/components/shared/create-record';
 import { Badge, PageHeader } from '@/components/shared/page-header';
 import { AssignmentForm, EnrollmentForms } from '@/components/shared/session-actions';
@@ -56,7 +57,10 @@ export async function BatchesPage({ actor, id, tab, c }: PageContext) {
         </div>
         {(!tab || tab === 'students') && (
           <>
-            <Table heads={['Student', 'Code', 'Enrollment', 'Status']} empty={!enrollment.length}>
+            <Table
+              heads={['Student', 'Enrollment code', 'Enrollment', 'Status']}
+              empty={!enrollment.length}
+            >
               {enrollment.map((r) => (
                 <tr key={r.enrollment.id}>
                   <td>
@@ -67,7 +71,12 @@ export async function BatchesPage({ actor, id, tab, c }: PageContext) {
                       {r.student.fullName}
                     </Link>
                   </td>
-                  <td>{r.student.studentCode}</td>
+                  <td>
+                    <EnrollmentCode code={r.enrollment.checkinCode} />
+                    <p className="mt-1 text-xs text-slate-400">
+                      Student ID: {r.student.studentCode}
+                    </p>
+                  </td>
                   <td>
                     {r.enrollment.enrolledOn} – {r.enrollment.endedOn ?? 'ongoing'}
                   </td>

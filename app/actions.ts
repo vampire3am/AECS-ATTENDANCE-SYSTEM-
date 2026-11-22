@@ -3,6 +3,7 @@ import { requireActor } from '@/lib/auth/permissions';
 import { AppError } from '@/lib/errors';
 import * as admin from '@/lib/services/admin';
 import * as attendance from '@/lib/services/attendance';
+import * as checkins from '@/lib/services/check-in';
 import { revalidatePath } from 'next/cache';
 import { ZodError } from 'zod';
 async function run<T>(work: () => Promise<T>, refresh = true) {
@@ -72,4 +73,10 @@ export async function correctionAction(input: unknown) {
 }
 export async function cancelAction(id: string, reason: string) {
   return run(async () => attendance.cancelSession(await requireActor(true), id, reason));
+}
+export async function startCheckinAction(id: string) {
+  return run(async () => checkins.startCheckin(await requireActor(), id), false);
+}
+export async function verifyCheckinAction(id: string) {
+  return run(async () => checkins.verifyCheckin(await requireActor(), id));
 }

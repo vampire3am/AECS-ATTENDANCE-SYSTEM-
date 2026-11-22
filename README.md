@@ -33,3 +33,11 @@ Never put credentials in Git, shell arguments, screenshots or issue reports. Acc
 Live database tests run **only** when `TEST_DATABASE_BRANCH=integration-tests` and an isolated test `DATABASE_URL` are provided. A gitignored `.env.test` may supply these plus its own direct migration URL. Run `node scripts/with-env.mjs .env.test scripts/migrate.ts` before integration tests. Tests create uniquely named fixtures and preserve audit history on that isolated branch. Without test configuration, those tests are explicitly skipped; CI runs the unit and storage suites and the build.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md), [DATABASE.md](DATABASE.md), [DEPLOYMENT.md](DEPLOYMENT.md) and [PROGRESS.md](PROGRESS.md).
+
+## Student QR attendance workflow
+
+1. Admin enrolls the student in a batch. Copy their private enrollment code from the batch roster or student profile; each course/batch enrollment has a separate code. Give this code privately to that student.
+2. Teacher opens today’s attendance and selects **Show classroom QR**. Display the QR in the classroom.
+3. Student scans it using their phone camera and enters that enrollment code. The QR expires after two minutes and refreshes while displayed.
+4. Teacher sees incoming requests and selects **Confirm present** after verifying the student is in class.
+5. Teacher completes the remaining roster and submits attendance normally. Scanning alone never finalizes attendance.

@@ -21,7 +21,7 @@ try {
     await client.query(`GRANT CONNECT ON DATABASE aecs_attend TO ${role}`);
     await client.query(`GRANT USAGE ON SCHEMA public TO ${role}`);
     await client.query(
-      `GRANT SELECT,INSERT,UPDATE ON profiles,courses,batches,students,enrollments,batch_schedules,teacher_assignments,class_sessions,attendance_records,app_settings TO ${role}`,
+      `GRANT SELECT,INSERT,UPDATE ON profiles,courses,batches,students,enrollments,batch_schedules,teacher_assignments,class_sessions,attendance_records,app_settings,checkin_windows,student_checkins TO ${role}`,
     );
     await client.query(`GRANT SELECT,INSERT ON audit_logs TO ${role}`);
     await client.query(`GRANT SELECT,INSERT,UPDATE,DELETE ON login_attempts TO ${role}`);

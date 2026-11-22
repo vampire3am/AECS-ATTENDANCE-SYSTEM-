@@ -16,6 +16,12 @@ import {
   saveAttendance,
 } from '../lib/services/attendance';
 import { reportRows } from '../lib/services/queries';
+import {
+  startCheckin,
+  submitStudentCheckin,
+  listCheckins,
+  verifyCheckin,
+} from '../lib/services/check-in';
 import { isoWeekday, localDate } from '../lib/utils';
 const enabled = Boolean(
   process.env.TEST_DATABASE_BRANCH === 'integration-tests' && process.env.DATABASE_URL,
@@ -24,6 +30,11 @@ describe.skipIf(!enabled)('Live PostgreSQL attendance invariants', () => {
   let admin: Actor, teacher: Actor, other: Actor;
   let batchId: string, batch2: string, studentIds: string[], sessionId: string;
   let version = 1;
+  let qrBatchId: string,
+    qrSessionId: string,
+    qrToken: string,
+    enrollmentCode: string,
+    checkinId: string;
   const operationId = randomUUID();
   const suffix = randomUUID().slice(0, 8);
   const loginPassword = randomUUID() + randomUUID();
@@ -138,6 +149,153 @@ describe.skipIf(!enabled)('Live PostgreSQL attendance invariants', () => {
     const model = await getSession(teacher, sessionId);
     expect(model.records).toHaveLength(4);
     expect(model.records.some((r) => r.studentId === studentIds[4])).toBe(false);
+  });
+  it('issues private enrollment codes and classroom QR tokens only to assigned staff', async () => {
+    process.env.NEXT_PUBLIC_APP_URL = 'https://aecs-attendance.vercel.app';
+    const [course] = await db
+      .insert(s.courses)
+      .values({ code: 'QR-' + suffix, name: 'QR integration course' })
+      .returning();
+    const [batch] = await db
+      .insert(s.batches)
+      .values({
+        courseId: course.id,
+        code: 'QR-' + suffix,
+        name: 'QR test batch',
+        startDate: today,
+      })
+      .returning();
+    qrBatchId = batch.id;
+    await assignTeacher(admin, { teacherId: teacher.id, batchId: qrBatchId, active: true });
+    for (const studentId of studentIds.slice(0, 4))
+      await enrollStudent(admin, { studentId, batchId: qrBatchId, enrolledOn: today });
+    await enrollStudent(admin, {
+      studentId: studentIds[4],
+      batchId: qrBatchId,
+      enrolledOn: new Date(Date.parse(today) + 86400000).toISOString().slice(0, 10),
+    });
+    const [row] = await actorTransaction(admin, (tx) =>
+      tx
+        .insert(s.classSessions)
+        .values({
+          batchId: qrBatchId,
+          sessionDate: today,
+          startTime: '13:00',
+          endTime: '14:00',
+          createdBy: admin.id,
+        })
+        .returning(),
+    );
+    qrSessionId = row.id;
+    await openSession(teacher, qrSessionId);
+    const enrollment = await db
+      .select()
+      .from(s.enrollments)
+      .where(eq(s.enrollments.batchId, qrBatchId));
+    enrollmentCode = enrollment.find((e) => e.studentId === studentIds[0])!.checkinCode;
+    expect(new Set(enrollment.map((e) => e.checkinCode)).size).toBe(enrollment.length);
+    expect(enrollmentCode).toMatch(/^AECS-[A-F0-9]{20}$/);
+    await expect(startCheckin(other, qrSessionId)).rejects.toMatchObject({ status: 403 });
+    const qr = await startCheckin(teacher, qrSessionId);
+    qrToken = new URL(qr.url).searchParams.get('token')!;
+    expect(qr.url).toContain('/check-in?');
+  });
+  it('queues duplicate student scans once without automatically marking present', async () => {
+    const input = { sessionId: qrSessionId, token: qrToken, code: enrollmentCode };
+    await Promise.all([submitStudentCheckin(input), submitStudentCheckin(input)]);
+    const rows = await listCheckins(teacher, qrSessionId);
+    expect(rows).toHaveLength(1);
+    checkinId = rows[0].id;
+    expect(rows[0].verifiedAt).toBeNull();
+    expect(
+      (await getSession(teacher, qrSessionId)).records.find((r) => r.studentId === studentIds[0])!
+        .status,
+    ).toBeNull();
+  });
+  it('blocks wrong-batch codes, future enrollment, refreshed and expired QR tokens', async () => {
+    const [future] = await db
+      .select()
+      .from(s.enrollments)
+      .where(and(eq(s.enrollments.studentId, studentIds[4]), eq(s.enrollments.batchId, qrBatchId)));
+    await expect(
+      submitStudentCheckin({ sessionId: qrSessionId, token: qrToken, code: future.checkinCode }),
+    ).rejects.toMatchObject({ status: 400 });
+    const next = await startCheckin(teacher, qrSessionId);
+    await expect(
+      submitStudentCheckin({ sessionId: qrSessionId, token: qrToken, code: enrollmentCode }),
+    ).rejects.toMatchObject({ status: 410 });
+    qrToken = new URL(next.url).searchParams.get('token')!;
+    const [otherSession] = await actorTransaction(admin, (tx) =>
+      tx
+        .insert(s.classSessions)
+        .values({
+          batchId: batch2,
+          sessionDate: today,
+          startTime: '13:00',
+          endTime: '14:00',
+          createdBy: admin.id,
+        })
+        .returning(),
+    );
+    await openSession(admin, otherSession.id);
+    const otherQR = await startCheckin(admin, otherSession.id);
+    await expect(
+      submitStudentCheckin({
+        sessionId: otherSession.id,
+        token: new URL(otherQR.url).searchParams.get('token'),
+        code: enrollmentCode,
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+    await db
+      .update(s.checkinWindows)
+      .set({ expiresAt: new Date(Date.now() - 1000) })
+      .where(eq(s.checkinWindows.sessionId, qrSessionId));
+    await expect(
+      submitStudentCheckin({ sessionId: qrSessionId, token: qrToken, code: enrollmentCode }),
+    ).rejects.toMatchObject({ status: 410 });
+  });
+  it('requires assigned teacher confirmation and protects verified records', async () => {
+    await expect(verifyCheckin(other, checkinId)).rejects.toMatchObject({ status: 403 });
+    await verifyCheckin(teacher, checkinId);
+    await verifyCheckin(teacher, checkinId);
+    const model = await getSession(teacher, qrSessionId);
+    expect(model.records.find((r) => r.studentId === studentIds[0])!.status).toBe('present');
+    expect(model.session.version).toBe(2);
+    expect((await listCheckins(teacher, qrSessionId))[0].verifiedAt).not.toBeNull();
+    await expect(
+      db
+        .update(s.studentCheckins)
+        .set({ studentId: studentIds[1] })
+        .where(eq(s.studentCheckins.id, checkinId)),
+    ).rejects.toBeDefined();
+    await expect(
+      db
+        .update(s.enrollments)
+        .set({ checkinCode: 'AECS-00000000000000000000' })
+        .where(eq(s.enrollments.checkinCode, enrollmentCode)),
+    ).rejects.toBeDefined();
+  });
+  it('rejects check-ins and QR issuance after final submission', async () => {
+    const qr = await startCheckin(teacher, qrSessionId);
+    const model = await getSession(teacher, qrSessionId);
+    await saveAttendance(
+      teacher,
+      {
+        sessionId: qrSessionId,
+        operationId: randomUUID(),
+        version: model.session.version,
+        records: model.records.map((r) => ({ studentId: r.studentId, status: 'present' })),
+      },
+      true,
+    );
+    await expect(startCheckin(teacher, qrSessionId)).rejects.toMatchObject({ status: 409 });
+    await expect(
+      submitStudentCheckin({
+        sessionId: qrSessionId,
+        token: new URL(qr.url).searchParams.get('token'),
+        code: enrollmentCode,
+      }),
+    ).rejects.toMatchObject({ status: 409 });
   });
   it('rejects active same-course duplicate enrollment in PostgreSQL', async () => {
     await expect(
@@ -261,7 +419,13 @@ describe.skipIf(!enabled)('Live PostgreSQL attendance invariants', () => {
     const [enrollment] = await db
       .select()
       .from(s.enrollments)
-      .where(and(eq(s.enrollments.studentId, studentIds[0]), eq(s.enrollments.status, 'active')));
+      .where(
+        and(
+          eq(s.enrollments.studentId, studentIds[0]),
+          eq(s.enrollments.batchId, batchId),
+          eq(s.enrollments.status, 'active'),
+        ),
+      );
     await transferStudent(admin, {
       enrollmentId: enrollment.id,
       batchId: batch2,

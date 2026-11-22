@@ -29,6 +29,20 @@
       "when": 1795333358785,
       "tag": "0003_strengthen_guards",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795335584066,
+      "tag": "0004_student_qr_checkin",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795335584974,
+      "tag": "0005_checkin_integrity",
+      "breakpoints": true
     }
   ]
 }

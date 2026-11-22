@@ -1,3 +1,4 @@
+import { EnrollmentCode } from '@/components/shared/enrollment-code';
 import { CreateRecord } from '@/components/shared/create-record';
 import { Badge, PageHeader } from '@/components/shared/page-header';
 import { db } from '@/lib/db';
@@ -76,11 +77,15 @@ export async function StudentsPage({ q, id }: PageContext) {
           ))}
         </div>
         <h2 className="mb-3 font-semibold">Enrollments</h2>
-        <Table heads={['Batch', 'From', 'Until', 'Status']} empty={!enrollment.length}>
+        <Table
+          heads={['Batch / enrollment code', 'From', 'Until', 'Status']}
+          empty={!enrollment.length}
+        >
           {enrollment.map((e) => (
             <tr key={e.enrollment.id}>
               <td>
                 <Link href={`/admin/batches/${e.batch.id}/students`}>{e.batch.name}</Link>
+                <EnrollmentCode code={e.enrollment.checkinCode} />
               </td>
               <td>{e.enrollment.enrolledOn}</td>
               <td>{e.enrollment.endedOn ?? 'Ongoing'}</td>
