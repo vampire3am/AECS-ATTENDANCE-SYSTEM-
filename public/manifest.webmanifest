@@ -1,0 +1,12 @@
+{
+  "name": "AECS Attend",
+  "short_name": "AECS Attend",
+  "description": "AECS staff attendance workspace",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f7fa",
+  "theme_color": "#072B62",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

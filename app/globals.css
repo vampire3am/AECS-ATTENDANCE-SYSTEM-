@@ -1,0 +1,162 @@
+@import 'tailwindcss';
+:root {
+  --background: #f5f7fa;
+  --foreground: #1e293b;
+  --primary: #072b62;
+  --accent: #f28a00;
+  color-scheme: light;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+}
+.input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #dbe1e9;
+  border-radius: 8px;
+  background: white;
+  padding: 10px 12px;
+  font-size: 16px;
+  color: #1e293b;
+}
+.input:focus {
+  outline: 2px solid #f28a00;
+  outline-offset: 2px;
+}
+.panel {
+  background: white;
+  border: 1px solid #e6eaf0;
+  border-radius: 14px;
+  padding: 24px;
+}
+.page-title {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+  color: #072b62;
+}
+.muted {
+  font-size: 14px;
+  color: #64748b;
+}
+.table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  text-align: left;
+}
+th {
+  padding: 13px 16px;
+  background: #f8fafc;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+td {
+  padding: 15px 16px;
+  border-top: 1px solid #edf0f5;
+}
+tbody tr:hover {
+  background: #fafbfd;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #475569;
+}
+.badge[data-status='active'],
+.badge[data-status='present'],
+.badge[data-status='submitted'] {
+  background: #e9f7ef;
+  color: #167347;
+}
+.badge[data-status='absent'],
+.badge[data-status='cancelled'] {
+  background: #fef0ee;
+  color: #bd3e30;
+}
+.badge[data-status='late'],
+.badge[data-status='open'] {
+  background: #fff4df;
+  color: #9b6500;
+}
+.badge[data-status='excused'] {
+  background: #eef1ff;
+  color: #5556a2;
+}
+.empty {
+  padding: 48px 20px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+}
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid #f28a00;
+  outline-offset: 3px;
+}
+@media (max-width: 640px) {
+  .panel {
+    padding: 16px;
+  }
+  td,
+  th {
+    padding: 12px;
+  }
+}
+@media print {
+  aside,
+  nav,
+  header,
+  button,
+  form {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+  .panel {
+    border: 0;
+  }
+}

@@ -1,0 +1,1 @@
+ALTER TABLE "class_sessions" ADD COLUMN "roster_locked" boolean DEFAULT false NOT NULL;
