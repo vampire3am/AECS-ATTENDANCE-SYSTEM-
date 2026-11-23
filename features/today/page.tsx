@@ -29,12 +29,12 @@ export async function Today({ actor }: { actor: Actor }) {
           }).format(new Date()) + ' · Nepal time'
         }
       >
-        {!teacher && (
+        {
           <div className="flex flex-wrap gap-2">
-            <AddStudent batches={choices} />
+            <AddStudent batches={choices} teacher={teacher} />
             <BatchSetup today={today} />
           </div>
-        )}
+        }
       </PageHeader>
       <section className="mb-6 rounded-2xl border border-[#dfe5f6] bg-[#eef1fb] p-5 sm:p-6">
         <p className="eyebrow !text-[#3854ac]">Your daily routine</p>
@@ -174,7 +174,7 @@ export async function Today({ actor }: { actor: Actor }) {
                   >
                     Manage batch →
                   </Link>
-                  {!teacher && <AddStudent batches={choices} batchId={b.id} />}
+                  <AddStudent batches={choices} batchId={b.id} teacher={teacher} />
                 </div>
               </article>
             );

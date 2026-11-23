@@ -306,3 +306,30 @@ summary::-webkit-details-marker {
     box-shadow: none;
   }
 }
+/* Small-screen and browser fallbacks keep content usable before dynamic viewport support. */
+.min-h-dvh {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+.student-landing {
+  background: radial-gradient(ellipse at 8% 25%, #edf0fb 0, transparent 48%), #f8f9fc;
+}
+input,
+select,
+textarea {
+  max-width: 100%;
+}
+@media (max-width: 380px) {
+  .attendance-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.workspace-dialog {
+  max-height: 90vh;
+  max-height: 90dvh;
+}
+@supports not (height: 100dvh) {
+  .student-landing {
+    min-height: 100vh;
+  }
+}

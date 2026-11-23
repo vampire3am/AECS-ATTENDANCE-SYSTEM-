@@ -103,9 +103,6 @@ describe.skipIf(!enabled)('Simple workflows on isolated PostgreSQL', () => {
   it('rejects invalid times and prevents teachers from changing setup', async () => {
     await expect(createBatchSetup(admin, { ...input, startTime: '29:00' })).rejects.toBeDefined();
     await expect(createBatchSetup(teacher, input)).rejects.toMatchObject({ status: 403 });
-    await expect(
-      createEnrolledStudent(teacher, { fullName: 'Forbidden', phone: '9800000000', batchId }),
-    ).rejects.toMatchObject({ status: 403 });
     await expect(startClass(admin, { batchId })).rejects.toMatchObject({ status: 409 });
   });
   it('adds a student and enrollment atomically and returns the private code', async () => {

@@ -1,5 +1,6 @@
 import { CreateRecord } from '@/components/shared/create-record';
 import { AddTeacher } from '@/components/workflows/add-teacher';
+import { TeacherCourseAccess } from '@/components/workflows/teacher-course-access';
 import { Badge, PageHeader } from '@/components/shared/page-header';
 import { db } from '@/lib/db';
 import * as s from '@/lib/db/schema';
@@ -9,6 +10,13 @@ import Link from 'next/link';
 import type { PageContext } from './context';
 import { Table } from './tables';
 export async function TeachersPage({ c }: PageContext) {
+  const courseGrants = await db
+    .select({
+      teacherId: s.teacherCourseAssignments.teacherId,
+      courseId: s.teacherCourseAssignments.courseId,
+    })
+    .from(s.teacherCourseAssignments)
+    .where(eq(s.teacherCourseAssignments.active, true));
   const assignments = await db
     .select({
       teacherId: s.teacherAssignments.teacherId,
@@ -24,7 +32,7 @@ export async function TeachersPage({ c }: PageContext) {
         <AddTeacher />
       </PageHeader>
       <Table
-        heads={['Teacher', 'Contact', 'Assigned batches', 'Status', '']}
+        heads={['Teacher', 'Contact', 'Assigned batches', 'Course access', 'Status', '']}
         empty={!c.teachers.length}
       >
         {c.teachers.map((t) => (
@@ -46,6 +54,15 @@ export async function TeachersPage({ c }: PageContext) {
                     {a.batchName}
                   </Link>
                 ))}
+            </td>
+            <td>
+              <TeacherCourseAccess
+                teacherId={t.id}
+                courses={c.courses.filter((course) => course.status === 'active')}
+                selected={courseGrants
+                  .filter((grant) => grant.teacherId === t.id)
+                  .map((grant) => grant.courseId)}
+              />
             </td>
             <td>
               <Badge status={t.status} />

@@ -1,4 +1,9 @@
-import { actorTransaction, type Actor } from '@/lib/auth/permissions';
+import {
+  actorTransaction,
+  requireBatch,
+  requireVisibleStudent,
+  type Actor,
+} from '@/lib/auth/permissions';
 import * as s from '@/lib/db/schema';
 import { invariant } from '@/lib/errors';
 import { localDate } from '@/lib/utils';
@@ -8,7 +13,11 @@ import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 export type Entity = 'students' | 'courses' | 'batches' | 'teachers' | 'schedules';
 export async function saveEntity(actor: Actor, entity: Entity, raw: unknown, id?: string) {
-  invariant(actor.role === 'super_admin', 'Administrator access required.', 403);
+  invariant(
+    actor.role === 'super_admin' || (entity === 'batches' && Boolean(id)) || entity === 'schedules',
+    'Administrator access required.',
+    403,
+  );
   if (id) v.uuid.parse(id);
   return actorTransaction(actor, async (tx) => {
     let result: { id: string }[] = [];
@@ -38,6 +47,7 @@ export async function saveEntity(actor: Actor, entity: Entity, raw: unknown, id?
       }
       case 'batches': {
         const p = v.batchInput.parse(raw);
+        if (id) await requireBatch(tx, actor, id);
         const [course] = await tx
           .select()
           .from(s.courses)
@@ -96,6 +106,7 @@ export async function saveEntity(actor: Actor, entity: Entity, raw: unknown, id?
       }
       case 'schedules': {
         const p = v.scheduleInput.parse(raw);
+        await requireBatch(tx, actor, p.batchId, true);
         const [batch] = await tx
           .select()
           .from(s.batches)
@@ -154,9 +165,10 @@ export async function saveEntity(actor: Actor, entity: Entity, raw: unknown, id?
   });
 }
 export async function enrollStudent(actor: Actor, raw: unknown) {
-  invariant(actor.role === 'super_admin', 'Administrator access required.', 403);
   const p = z.object({ studentId: v.uuid, batchId: v.uuid, enrolledOn: v.day }).parse(raw);
   return actorTransaction(actor, async (tx) => {
+    await requireBatch(tx, actor, p.batchId, true);
+    await requireVisibleStudent(tx, actor, p.studentId);
     const [student] = await tx
       .select()
       .from(s.students)
@@ -193,7 +205,6 @@ export async function enrollStudent(actor: Actor, raw: unknown) {
   });
 }
 export async function transferStudent(actor: Actor, raw: unknown) {
-  invariant(actor.role === 'super_admin', 'Administrator access required.', 403);
   const p = z
     .object({ enrollmentId: v.uuid, batchId: v.uuid, effectiveOn: v.day, reason: v.reason })
     .parse(raw);
@@ -204,6 +215,8 @@ export async function transferStudent(actor: Actor, raw: unknown) {
       .where(eq(s.enrollments.id, p.enrollmentId))
       .for('update');
     invariant(old?.status === 'active', 'Active enrollment not found.');
+    await requireBatch(tx, actor, old.batchId, true);
+    await requireBatch(tx, actor, p.batchId, true);
     await tx.select().from(s.students).where(eq(s.students.id, old.studentId)).for('update');
     await tx
       .select()
@@ -268,7 +281,6 @@ export async function transferStudent(actor: Actor, raw: unknown) {
   });
 }
 export async function endEnrollment(actor: Actor, raw: unknown) {
-  invariant(actor.role === 'super_admin', 'Administrator access required.', 403);
   const p = z.object({ id: v.uuid, endedOn: v.day, reason: v.reason }).parse(raw);
   return actorTransaction(actor, async (tx) => {
     const [old] = await tx
@@ -280,6 +292,7 @@ export async function endEnrollment(actor: Actor, raw: unknown) {
       old?.status === 'active' && p.endedOn >= localDate() && p.endedOn >= old.enrolledOn,
       'Invalid enrollment end date.',
     );
+    await requireBatch(tx, actor, old.batchId, true);
     await tx.select().from(s.batches).where(eq(s.batches.id, old.batchId)).for('update');
     const opened = await tx
       .select({ id: s.classSessions.id })
@@ -325,12 +338,19 @@ export async function assignTeacher(actor: Actor, raw: unknown) {
       .where(eq(s.batches.id, p.batchId))
       .for('update');
     invariant(batch?.status === 'active', 'Choose an active batch.');
-    if (p.active)
+    if (p.active) {
+      await tx
+        .insert(s.teacherCourseAssignments)
+        .values({ teacherId: p.teacherId, courseId: batch.courseId })
+        .onConflictDoUpdate({
+          target: [s.teacherCourseAssignments.teacherId, s.teacherCourseAssignments.courseId],
+          set: { active: true },
+        });
       await tx
         .insert(s.teacherAssignments)
         .values({ ...p })
         .onConflictDoNothing();
-    else
+    } else
       await tx
         .update(s.teacherAssignments)
         .set({ active: false })

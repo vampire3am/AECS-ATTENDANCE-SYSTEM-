@@ -16,6 +16,7 @@ export function BatchSetup({ today }: { today: string }) {
     [teachers, setTeachers] = useState<Option[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(false),
     [loaded, setLoaded] = useState(false);
+  const [teacherMode, setTeacherMode] = useState(false);
   const [course, setCourse] = useState('new'),
     [teacher, setTeacher] = useState('admin');
   const [days, setDays] = useState([1, 2, 3, 4, 5]);
@@ -32,6 +33,7 @@ export function BatchSetup({ today }: { today: string }) {
     try {
       const r = await batchSetupOptionsAction();
       if (r.ok) {
+        setTeacherMode(r.data.teacherMode);
         setCourses(r.data.courses);
         setTeachers(r.data.teachers);
         setCourse(r.data.courses[0]?.id ?? 'new');
@@ -80,7 +82,11 @@ export function BatchSetup({ today }: { today: string }) {
               className="w-full"
               onClick={() => {
                 setOpen(false);
-                router.push('/admin/batches/' + result.id + '/students');
+                router.push(
+                  teacherMode
+                    ? '/teacher/classes/' + result.id
+                    : '/admin/batches/' + result.id + '/students',
+                );
               }}
             >
               Add students to this batch →
@@ -114,7 +120,7 @@ export function BatchSetup({ today }: { today: string }) {
                   name: form.get('name'),
                   course: course === 'new' ? { name: form.get('courseName') } : { id: course },
                   teacher:
-                    teacher === 'admin'
+                    teacherMode || teacher === 'admin'
                       ? undefined
                       : teacher === 'new'
                         ? { fullName: form.get('teacherName'), email: form.get('teacherEmail') }
@@ -133,7 +139,12 @@ export function BatchSetup({ today }: { today: string }) {
               }
             }}
           >
-            <fieldset disabled={busy} className="grid gap-5">
+            {teacherMode && !courses.length && (
+              <p role="alert" className="rounded-xl bg-amber-50 p-4 text-sm text-amber-800">
+                Your admin needs to assign a course before you can create a batch.
+              </p>
+            )}
+            <fieldset disabled={busy || (teacherMode && !courses.length)} className="grid gap-5">
               <label className="grid gap-2 text-sm font-semibold">
                 Batch name
                 <input
@@ -157,10 +168,10 @@ export function BatchSetup({ today }: { today: string }) {
                       {c.name}
                     </option>
                   ))}
-                  <option value="new">+ Create a new course</option>
+                  {!teacherMode && <option value="new">+ Create a new course</option>}
                 </select>
               </label>
-              {course === 'new' && (
+              {!teacherMode && course === 'new' && (
                 <label className="grid gap-2 rounded-xl bg-[#f6f8fe] p-4 text-sm font-semibold">
                   New course name
                   <input
@@ -173,23 +184,25 @@ export function BatchSetup({ today }: { today: string }) {
                   />
                 </label>
               )}
-              <label className="grid gap-2 text-sm font-semibold">
-                Who teaches this batch?
-                <select
-                  className="input"
-                  value={teacher}
-                  onChange={(e) => setTeacher(e.target.value)}
-                >
-                  <option value="admin">I’ll manage it as admin</option>
-                  {teachers.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
-                  <option value="new">+ Add a new teacher</option>
-                </select>
-              </label>
-              {teacher === 'new' && (
+              {!teacherMode && (
+                <label className="grid gap-2 text-sm font-semibold">
+                  Who teaches this batch?
+                  <select
+                    className="input"
+                    value={teacher}
+                    onChange={(e) => setTeacher(e.target.value)}
+                  >
+                    <option value="admin">I’ll manage it as admin</option>
+                    {teachers.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                    <option value="new">+ Add a new teacher</option>
+                  </select>
+                </label>
+              )}
+              {!teacherMode && teacher === 'new' && (
                 <div className="grid gap-4 rounded-xl bg-[#f6f8fe] p-4">
                   <label className="grid gap-2 text-sm font-semibold">
                     Teacher name
@@ -276,7 +289,11 @@ export function BatchSetup({ today }: { today: string }) {
                 {error}
               </p>
             )}
-            <Button type="submit" className="w-full" disabled={busy}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={busy || (teacherMode && !courses.length)}
+            >
               {busy && <LoaderCircle size={17} className="animate-spin" />}
               {busy ? 'Creating your batch…' : 'Create batch'}
             </Button>

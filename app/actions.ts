@@ -5,6 +5,7 @@ import * as admin from '@/lib/services/admin';
 import * as attendance from '@/lib/services/attendance';
 import * as checkins from '@/lib/services/check-in';
 import * as workflows from '@/lib/services/workflows';
+import { setTeacherCourses } from '@/lib/services/teacher-access';
 import { catalog } from '@/lib/services/queries';
 import { revalidatePath } from 'next/cache';
 import { ZodError } from 'zod';
@@ -41,16 +42,16 @@ async function run<T>(work: () => Promise<T>, refresh = true) {
   }
 }
 export async function saveEntityAction(entity: admin.Entity, input: unknown, id?: string) {
-  return run(async () => admin.saveEntity(await requireActor(true), entity, input, id));
+  return run(async () => admin.saveEntity(await requireActor(), entity, input, id));
 }
 export async function enrollAction(input: unknown) {
-  return run(async () => admin.enrollStudent(await requireActor(true), input));
+  return run(async () => admin.enrollStudent(await requireActor(), input));
 }
 export async function transferAction(input: unknown) {
-  return run(async () => admin.transferStudent(await requireActor(true), input));
+  return run(async () => admin.transferStudent(await requireActor(), input));
 }
 export async function endEnrollmentAction(input: unknown) {
-  return run(async () => admin.endEnrollment(await requireActor(true), input));
+  return run(async () => admin.endEnrollment(await requireActor(), input));
 }
 export async function assignAction(input: unknown) {
   return run(async () => admin.assignTeacher(await requireActor(true), input));
@@ -83,10 +84,10 @@ export async function verifyCheckinAction(id: string) {
   return run(async () => checkins.verifyCheckin(await requireActor(), id));
 }
 export async function createBatchSetupAction(input: unknown) {
-  return run(async () => workflows.createBatchSetup(await requireActor(true), input));
+  return run(async () => workflows.createBatchSetup(await requireActor(), input));
 }
 export async function createEnrolledStudentAction(input: unknown) {
-  return run(async () => workflows.createEnrolledStudent(await requireActor(true), input));
+  return run(async () => workflows.createEnrolledStudent(await requireActor(), input));
 }
 export async function startClassAction(input: unknown) {
   return run(async () => {
@@ -102,8 +103,10 @@ export async function createTeacherAccountAction(input: unknown) {
 }
 export async function batchSetupOptionsAction() {
   return run(async () => {
-    const c = await catalog(await requireActor(true), ['courses', 'teachers']);
+    const actor = await requireActor();
+    const c = await catalog(actor, ['courses', 'teachers']);
     return {
+      teacherMode: actor.role === 'teacher',
       courses: c.courses
         .filter((v) => v.status === 'active')
         .map((v) => ({ id: v.id, name: v.name })),
@@ -112,4 +115,8 @@ export async function batchSetupOptionsAction() {
         .map((v) => ({ id: v.id, name: v.fullName })),
     };
   }, false);
+}
+
+export async function setTeacherCoursesAction(input: unknown) {
+  return run(async () => setTeacherCourses(await requireActor(true), input));
 }

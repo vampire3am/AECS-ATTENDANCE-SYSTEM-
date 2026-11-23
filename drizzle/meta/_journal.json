@@ -43,6 +43,13 @@
       "when": 1795335584974,
       "tag": "0005_checkin_integrity",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795413540438,
+      "tag": "0006_funny_karnak",
+      "breakpoints": true
     }
   ]
 }

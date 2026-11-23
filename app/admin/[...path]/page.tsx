@@ -47,7 +47,7 @@ export default async function AdminPage({
           : section === 'courses'
             ? ['courses']
             : section === 'teachers'
-              ? ['teachers']
+              ? ['teachers', 'courses']
               : ['batches', 'courses', 'teachers'];
   const c = await catalog(actor, include);
   return <Page actor={actor} q={q} id={id} tab={tab} c={c} />;

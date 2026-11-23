@@ -1,211 +1,366 @@
+import Link from 'next/link';
 import { Today } from '@/features/today/page';
 import { SessionCheckins } from '@/components/attendance/check-ins';
-import { CommonQr } from '@/components/shared/common-qr';
 import { AttendanceMarking } from '@/components/attendance/marking';
+import { CommonQr } from '@/components/shared/common-qr';
 import { Badge, PageHeader } from '@/components/shared/page-header';
-import { OpenSession } from '@/components/shared/session-actions';
+import { CreateRecord } from '@/components/shared/create-record';
+import { EnrollmentCode } from '@/components/shared/enrollment-code';
+import { EnrollmentForms, OpenSession } from '@/components/shared/session-actions';
 import { SignOut } from '@/components/shared/sign-out';
-import { actorTransaction, requireActor, requireBatch } from '@/lib/auth/permissions';
-import { db } from '@/lib/db';
-import * as s from '@/lib/db/schema';
+import { BatchSetup } from '@/components/workflows/batch-setup';
+import { AddStudent } from '@/components/workflows/add-student';
+import { Button } from '@/components/ui/button';
+import { Table } from '@/features/admin/pages/tables';
+import { requireActor } from '@/lib/auth/permissions';
 import { getSession, listSessions } from '@/lib/services/attendance';
-import { catalog } from '@/lib/services/queries';
+import { teacherBatch, teacherStudents } from '@/lib/services/teacher-workspace';
+import { catalog, reportRows } from '@/lib/services/queries';
+import { batchFields, scheduleFields } from '@/lib/form-fields';
+import { parseReportFilters } from '@/lib/report-filters';
 import { localDate } from '@/lib/utils';
 import { uuid } from '@/lib/validations';
-import { and, eq, sql } from 'drizzle-orm';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
-export default async function TeacherPage({ params }: { params: Promise<{ path?: string[] }> }) {
+
+export default async function TeacherPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ path?: string[] }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const actor = await requireActor();
   const { path = [] } = await params;
   const [section, id] = path;
-  const today = localDate();
-  if (id && !uuid.safeParse(id).success) notFound();
-  if (section === 'attendance' && id) {
-    const model = await getSession(actor, id);
-    return model.session.status === 'scheduled' ? (
-      <>
-        <PageHeader
-          title={model.batch.name}
-          description={`${model.session.sessionDate} · ${model.session.startTime.slice(0, 5)}`}
-        />
-        <OpenSession id={id} teacher />
-      </>
-    ) : (
-      <>
-        <AttendanceMarking model={{ ...model, actorId: actor.id }}>
-          {model.session.status === 'open' && <SessionCheckins sessionId={id} />}
-        </AttendanceMarking>
-      </>
-    );
-  }
-  if (section === 'profile')
+  if (path.length > 2 || (id && !uuid.safeParse(id).success)) notFound();
+  if (!section) return <Today actor={actor} />;
+  if (section === 'profile' && !id)
     return (
       <>
-        <PageHeader title="Your profile" description="Your AECS staff account" />
+        <PageHeader title="Your account" description="Your private AECS staff workspace" />
         <section className="panel space-y-4">
-          <p className="font-semibold">{actor.fullName}</p>
-          <p className="muted">{actor.email}</p>
-          <p className="muted">{actor.phone ?? 'No phone provided'}</p>
-          <p className="muted">Contact your administrator to update your profile or password.</p>
+          <p className="font-bold">{actor.fullName}</p>
+          <p className="break-all text-sm">{actor.email}</p>
+          <p className="muted">Ask your admin to change your password or course access.</p>
           <SignOut />
         </section>
       </>
     );
-  if (section === 'classes' && id) {
-    await actorTransaction(actor, (tx) => requireBatch(tx, actor, id));
-    const c = await catalog(actor);
-    const batch = c.batches.find((b) => b.id === id);
-    if (!batch) notFound();
-    const [roster, schedules] = await Promise.all([
-      db
-        .select({ id: s.students.id, name: s.students.fullName, code: s.students.studentCode })
-        .from(s.enrollments)
-        .innerJoin(s.students, eq(s.students.id, s.enrollments.studentId))
-        .where(
-          and(
-            eq(s.enrollments.batchId, id),
-            sql`${s.enrollments.enrolledOn}<=${today}::date and (${s.enrollments.endedOn} is null or ${s.enrollments.endedOn}>${today}::date)`,
-          ),
-        )
-        .orderBy(s.students.fullName),
-      db
-        .select()
-        .from(s.batchSchedules)
-        .where(and(eq(s.batchSchedules.batchId, id), eq(s.batchSchedules.status, 'active'))),
-    ]);
+  if (section === 'attendance' && id) {
+    const model = await getSession(actor, id);
     return (
       <>
-        <PageHeader title={batch.name} description={batch.courseName} />
-        <CommonQr />
-        <section className="panel mb-5">
-          <h2 className="font-semibold">Weekly timetable</h2>
-          {schedules.map((r) => (
-            <p key={r.id} className="muted mt-3">
-              {
-                ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][
-                  r.weekday
-                ]
-              }{' '}
-              · {r.startTime.slice(0, 5)}–{r.endTime.slice(0, 5)}
-            </p>
-          ))}
-        </section>
-        <section className="panel">
-          <h2 className="font-semibold">Current roster · {roster.length}</h2>
-          {roster.map((r) => (
-            <div
-              key={r.id}
-              className="flex justify-between gap-3 border-b border-slate-100 py-4 text-sm"
-            >
-              <span>{r.name}</span>
-              <span className="text-slate-400">{r.code}</span>
-            </div>
-          ))}
-          {!roster.length && <p className="empty">No enrolled students yet.</p>}
-        </section>
+        <Link
+          href="/teacher"
+          className="mb-5 inline-flex min-h-11 items-center text-sm font-semibold text-[#3854ac]"
+        >
+          ← Back to Today
+        </Link>
+        {model.session.status === 'scheduled' ? (
+          <>
+            <PageHeader title={model.batch.name} description={model.session.sessionDate} />
+            <OpenSession id={id} teacher />
+          </>
+        ) : (
+          <AttendanceMarking model={{ ...model, actorId: actor.id }}>
+            {model.session.status === 'open' && <SessionCheckins sessionId={id} />}
+          </AttendanceMarking>
+        )}
       </>
     );
   }
-  if (section === 'classes') {
-    const c = await catalog(actor);
+  if (section === 'students' && !id) {
+    const [rows, c] = await Promise.all([teacherStudents(actor), catalog(actor, ['batches'])]);
     return (
       <>
-        <PageHeader title="My classes" description="Your assigned batches" />
+        <PageHeader
+          title="My students"
+          description="Only students enrolled in your assigned batches appear here."
+        >
+          <AddStudent teacher batches={c.batches.filter((b) => b.status === 'active')} />
+        </PageHeader>
+        <Table heads={['Student', 'Your batch', 'Private enrollment code']} empty={!rows.length}>
+          {rows.map((r) => (
+            <tr key={r.id}>
+              <td>
+                <p className="font-bold">{r.fullName}</p>
+                <p className="muted">{r.phone}</p>
+              </td>
+              <td>
+                <Link href={'/teacher/classes/' + r.batchId}>
+                  {r.courseName} · {r.batchName}
+                </Link>
+              </td>
+              <td>
+                <EnrollmentCode code={r.code} />
+              </td>
+            </tr>
+          ))}
+        </Table>
+      </>
+    );
+  }
+  if (section === 'classes' && id) {
+    const [{ batch, schedules }, roster, c] = await Promise.all([
+      teacherBatch(actor, id),
+      teacherStudents(actor, id),
+      catalog(actor, ['batches']),
+    ]);
+    const visible = await teacherStudents(actor);
+    const students = [
+      ...new Map(
+        visible.map((r) => [r.studentId, { value: r.studentId, label: r.fullName }]),
+      ).values(),
+    ];
+    return (
+      <>
+        <PageHeader title={batch.name} description={batch.courseName}>
+          <AddStudent
+            teacher
+            batches={c.batches.filter((b) => b.status === 'active')}
+            batchId={id}
+          />
+        </PageHeader>
+        <CommonQr />
+        <section className="mb-6">
+          <h2 className="mb-3 font-bold">Your batch students</h2>
+          <Table
+            heads={['Student', 'Phone', 'Private code', 'Enrolled from']}
+            empty={!roster.length}
+          >
+            {roster.map((r) => (
+              <tr key={r.id}>
+                <td className="font-bold">{r.fullName}</td>
+                <td>{r.phone}</td>
+                <td>
+                  <EnrollmentCode code={r.code} />
+                </td>
+                <td>{r.enrolledOn}</td>
+              </tr>
+            ))}
+          </Table>
+        </section>
+        <section className="panel mb-6">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-bold">Weekly timetable</h2>
+            <CreateRecord
+              entity="schedules"
+              title="Add class time"
+              fields={[
+                {
+                  name: 'batchId',
+                  label: 'Batch',
+                  defaultValue: id,
+                  options: [{ value: id, label: batch.name }],
+                  required: true,
+                },
+                ...scheduleFields,
+              ]}
+            />
+          </div>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Day</th>
+                  <th>Time</th>
+                  <th>Status</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {schedules.map((r) => (
+                  <tr key={r.id}>
+                    <td>
+                      {
+                        [
+                          '',
+                          'Monday',
+                          'Tuesday',
+                          'Wednesday',
+                          'Thursday',
+                          'Friday',
+                          'Saturday',
+                          'Sunday',
+                        ][r.weekday]
+                      }
+                    </td>
+                    <td>
+                      {r.startTime.slice(0, 5)}–{r.endTime.slice(0, 5)}
+                    </td>
+                    <td>
+                      <Badge status={r.status} />
+                    </td>
+                    <td>
+                      <CreateRecord
+                        entity="schedules"
+                        title="Edit"
+                        id={r.id}
+                        fields={[
+                          {
+                            name: 'batchId',
+                            label: 'Batch',
+                            defaultValue: id,
+                            options: [{ value: id, label: batch.name }],
+                          },
+                          ...scheduleFields,
+                        ]}
+                        defaults={{
+                          ...r,
+                          weekday: String(r.weekday),
+                          startTime: r.startTime.slice(0, 5),
+                          endTime: r.endTime.slice(0, 5),
+                        }}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {!schedules.length && <p className="empty">Add the days and times this batch meets.</p>}
+        </section>
+        <details className="mb-6">
+          <summary className="min-h-11 py-3 text-sm font-bold text-slate-500">
+            Transfer or end an enrollment
+          </summary>
+          <EnrollmentForms
+            batchId={id}
+            students={students}
+            batches={c.batches
+              .filter((b) => b.id !== id && b.courseId === batch.courseId && b.status === 'active')
+              .map((b) => ({ value: b.id, label: b.name }))}
+            enrollments={roster.map((r) => ({ id: r.id, label: r.fullName }))}
+          />
+        </details>
+        <details className="panel">
+          <summary className="font-bold">Batch settings</summary>
+          <div className="mt-4">
+            <CreateRecord
+              entity="batches"
+              title="Edit batch"
+              id={id}
+              defaults={batch}
+              fields={batchFields([{ id: batch.courseId, name: batch.courseName }])}
+            />
+          </div>
+        </details>
+      </>
+    );
+  }
+  if (section === 'classes' && !id) {
+    const c = await catalog(actor, ['batches']);
+    return (
+      <>
+        <PageHeader
+          title="My batches"
+          description="Batches you create or your admin assigns to you."
+        >
+          <BatchSetup today={localDate()} />
+        </PageHeader>
         <div className="grid gap-4 sm:grid-cols-2">
           {c.batches.map((b) => (
-            <Link className="panel" key={b.id} href={`/teacher/classes/${b.id}`}>
-              <p className="text-xs font-semibold uppercase tracking-wider text-orange-600">
-                {b.courseName}
-              </p>
-              <h2 className="mt-3 text-lg font-semibold text-[#3854AC]">{b.name}</h2>
-              <p className="muted mt-2">{b.code}</p>
-              <div className="mt-4">
-                <Badge status={b.status} />
-              </div>
+            <Link key={b.id} className="panel" href={'/teacher/classes/' + b.id}>
+              <p className="eyebrow">{b.courseName}</p>
+              <h2 className="mt-2 text-lg font-bold">{b.name}</h2>
+              <p className="muted mt-2">Students, class times and batch settings →</p>
             </Link>
           ))}
         </div>
         {!c.batches.length && (
-          <p className="panel empty">No classes assigned. Ask your admin to assign your batches.</p>
+          <p className="panel empty">
+            No batches yet. Create a batch in an assigned course, or ask your admin for access.
+          </p>
         )}
       </>
     );
   }
-  if (section && section !== 'history') notFound();
-  if (!section) return <Today actor={actor} />;
-  const allSessions = await listSessions(actor, section ? {} : { date: today });
-  const sessions =
-    section === 'history' ? allSessions.filter((s) => s.submittedBy === actor.id) : allSessions;
-  return (
-    <>
-      <PageHeader
-        title={section ? 'Session history' : `Hello, ${actor.fullName.split(' ')[0]}`}
-        description={
-          section
-            ? 'Your assigned class sessions'
-            : new Intl.DateTimeFormat('en-GB', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long',
-                timeZone: 'Asia/Kathmandu',
-              }).format(new Date())
-        }
-      />
-      {!section && (
-        <section className="mb-6 rounded-2xl bg-[#3854AC] p-5 text-white">
-          <p className="text-sm text-blue-200">Your day at a glance</p>
-          <div className="mt-3 flex items-end justify-between">
-            <div>
-              <span className="text-4xl font-bold">
-                {sessions.filter((s) => s.status !== 'cancelled').length}
-              </span>
-              <span className="ml-2 text-sm text-blue-100">classes today</span>
-            </div>
-            <span className="text-sm text-blue-100">
-              {sessions.filter((s) => s.status === 'submitted').length} completed
-            </span>
-          </div>
-        </section>
-      )}
-      <h2 className="mb-4 font-semibold">{section ? 'Recent sessions' : 'Today’s classes'}</h2>
-      <div className="grid gap-4">
-        {sessions.map((s) => (
-          <article key={s.id} className="panel">
-            <div className="flex items-start justify-between gap-3">
+  if (section === 'reports' && !id) {
+    const filters = parseReportFilters(await searchParams);
+    const [rows, c] = await Promise.all([reportRows(filters, actor), catalog(actor, ['batches'])]);
+    const qs = new URLSearchParams(
+      Object.entries(filters).filter((v): v is [string, string] => typeof v[1] === 'string'),
+    );
+    return (
+      <>
+        <PageHeader title="My reports" description="Attendance for your assigned batches only." />
+        <form className="panel mb-6 grid gap-4 sm:grid-cols-3">
+          <label className="grid gap-2 text-sm font-semibold">
+            Batch
+            <select name="batchId" className="input" defaultValue={filters.batchId ?? ''}>
+              <option value="">All my batches</option>
+              {c.batches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-2 text-sm font-semibold">
+            From
+            <input name="from" type="date" className="input" defaultValue={filters.from} />
+          </label>
+          <label className="grid gap-2 text-sm font-semibold">
+            Until
+            <input name="to" type="date" className="input" defaultValue={filters.to} />
+          </label>
+          <Button type="submit">Apply filters</Button>
+        </form>
+        <div className="mb-5 flex flex-wrap gap-3">
+          <Button asChild variant="outline">
+            <a href={'/api/reports?' + qs + '&format=xlsx'}>Download Excel</a>
+          </Button>
+          <Button asChild variant="outline">
+            <a href={'/api/reports?' + qs + '&format=pdf'}>Download PDF</a>
+          </Button>
+          <Link
+            href="/teacher/history"
+            className="inline-flex min-h-11 items-center text-sm font-bold text-[#3854ac]"
+          >
+            Class history →
+          </Link>
+        </div>
+        <Table heads={['Student', 'Batch', 'Present', 'Absent', 'Attendance']} empty={!rows.length}>
+          {rows.map((r) => (
+            <tr key={r.student_id + ':' + r.batch_id}>
+              <td>{r.full_name}</td>
+              <td>{r.batch_name}</td>
+              <td>{r.present}</td>
+              <td>{r.absent}</td>
+              <td>{r.percentage === null ? '—' : r.percentage + '%'}</td>
+            </tr>
+          ))}
+        </Table>
+      </>
+    );
+  }
+  if (section === 'history' && !id) {
+    const sessions = await listSessions(actor);
+    return (
+      <>
+        <PageHeader title="Class history" description="Sessions in your assigned batches only." />
+        <div className="grid gap-3">
+          {sessions.map((s) => (
+            <Link
+              key={s.id}
+              href={'/teacher/attendance/' + s.id}
+              className="panel flex flex-wrap items-center justify-between gap-3"
+            >
               <div>
-                <h3 className="font-semibold text-[#3854AC]">{s.batchName}</h3>
-                <p className="mt-1 text-xs font-semibold text-orange-600">{s.courseName}</p>
-                <p className="muted mt-1">
-                  {section && `${s.date} · `}
-                  {s.startTime.slice(0, 5)}–{s.endTime.slice(0, 5)}
+                <h2 className="font-bold">{s.batchName}</h2>
+                <p className="muted">
+                  {s.date} · {s.startTime.slice(0, 5)}–{s.endTime.slice(0, 5)}
                 </p>
               </div>
               <Badge status={s.status} />
-            </div>
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-slate-500">{s.studentCount} students</p>
-              {s.status === 'scheduled' ? (
-                <OpenSession id={s.id} teacher />
-              ) : s.status !== 'cancelled' ? (
-                <Link
-                  className="rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold text-[#3854AC]"
-                  href={`/teacher/attendance/${s.id}`}
-                >
-                  {s.status === 'open' ? 'Continue attendance' : 'View attendance'}
-                </Link>
-              ) : null}
-            </div>
-          </article>
-        ))}
+            </Link>
+          ))}
+        </div>
         {!sessions.length && (
-          <section className="panel empty">
-            {section
-              ? 'Your sessions will appear here.'
-              : 'No classes scheduled for today. You’re all caught up.'}
-          </section>
+          <p className="panel empty">Start a class from Today to see it here.</p>
         )}
-      </div>
-    </>
-  );
+      </>
+    );
+  }
+  notFound();
 }

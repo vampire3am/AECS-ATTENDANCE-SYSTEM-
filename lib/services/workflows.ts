@@ -2,7 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { hash } from '@node-rs/argon2';
 import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { actorTransaction, requireBatch, type Actor } from '@/lib/auth/permissions';
+import { actorTransaction, requireBatch, requireCourse, type Actor } from '@/lib/auth/permissions';
 import { db } from '@/lib/db';
 import * as s from '@/lib/db/schema';
 import { invariant } from '@/lib/errors';
@@ -41,8 +41,13 @@ const batchSetup = z
   .refine((p) => p.endTime > p.startTime, 'Class end time must be after its start time.');
 
 export async function createBatchSetup(actor: Actor, raw: unknown) {
-  invariant(actor.role === 'super_admin', 'Administrator access required.', 403);
   const p = batchSetup.parse(raw);
+  invariant(
+    actor.role === 'super_admin' ||
+      ('id' in p.course && (!p.teacher || ('id' in p.teacher && p.teacher.id === actor.id))),
+    'Teachers can only create their own batches in assigned courses.',
+    403,
+  );
   invariant(p.startDate >= localDate(), 'Choose today or a future start date.');
   const password =
     p.teacher && 'email' in p.teacher ? randomBytes(18).toString('base64url') : undefined;
@@ -52,6 +57,7 @@ export async function createBatchSetup(actor: Actor, raw: unknown) {
   return actorTransaction(actor, async (tx) => {
     let courseId: string;
     if ('id' in p.course) {
+      await requireCourse(tx, actor, p.course.id);
       const [course] = await tx
         .select({ id: s.courses.id })
         .from(s.courses)
@@ -72,7 +78,7 @@ export async function createBatchSetup(actor: Actor, raw: unknown) {
         entityId: course.id,
       });
     }
-    let teacherId: string | undefined;
+    let teacherId: string | undefined = actor.role === 'teacher' ? actor.id : undefined;
     if (p.teacher && 'id' in p.teacher) {
       const [teacher] = await tx
         .select({ id: s.profiles.id })
@@ -115,7 +121,17 @@ export async function createBatchSetup(actor: Actor, raw: unknown) {
         startDate: p.startDate,
       })
       .returning({ id: s.batches.id });
-    if (teacherId) await tx.insert(s.teacherAssignments).values({ batchId: batch.id, teacherId });
+    if (teacherId) {
+      await tx.insert(s.teacherAssignments).values({ batchId: batch.id, teacherId });
+      if (actor.role === 'super_admin')
+        await tx
+          .insert(s.teacherCourseAssignments)
+          .values({ teacherId, courseId })
+          .onConflictDoUpdate({
+            target: [s.teacherCourseAssignments.teacherId, s.teacherCourseAssignments.courseId],
+            set: { active: true },
+          });
+    }
     const schedules = [...new Set(p.weekdays)].map((weekday) =>
       scheduleInput.parse({
         batchId: batch.id,
@@ -144,7 +160,6 @@ export async function createBatchSetup(actor: Actor, raw: unknown) {
 }
 
 export async function createEnrolledStudent(actor: Actor, raw: unknown) {
-  invariant(actor.role === 'super_admin', 'Administrator access required.', 403);
   const p = studentInput
     .pick({ fullName: true, phone: true, email: true })
     .extend({ batchId: uuid })
@@ -177,7 +192,7 @@ export async function createEnrolledStudent(actor: Actor, raw: unknown) {
       entityId: student.id,
       metadata: { batchId: p.batchId, enrollmentId: enrollment.id, enrolledOn },
     });
-    return { ...student, enrollmentCode: enrollment.code, enrolledOn };
+    return { ...student, enrollmentCode: enrollment.code, enrolledOn, batchId: p.batchId };
   });
 }
 

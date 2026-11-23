@@ -7,7 +7,14 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-const schema = z.object({ email: z.email(), password: z.string().min(1) });
+const schema = z.object({
+  email: z
+    .string()
+    .trim()
+    .pipe(z.email())
+    .transform((s) => s.toLowerCase()),
+  password: z.string().min(1).max(256),
+});
 export function LoginForm() {
   const router = useRouter();
   const [error, setError] = useState('');
@@ -32,7 +39,17 @@ export function LoginForm() {
     >
       <label className="grid gap-2 text-sm font-medium">
         Email address
-        <input className="input" type="email" autoComplete="username" {...register('email')} />
+        <input
+          className="input"
+          type="email"
+          autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
+          maxLength={254}
+          required
+          aria-invalid={Boolean(errors.email)}
+          {...register('email')}
+        />
         {errors.email && <span className="text-red-600">Enter a valid email.</span>}
       </label>
       <label className="grid gap-2 text-sm font-medium">
@@ -40,9 +57,15 @@ export function LoginForm() {
         <input
           className="input"
           type="password"
+          maxLength={256}
+          required
+          aria-invalid={Boolean(errors.password)}
           autoComplete="current-password"
           {...register('password')}
         />
+        {errors.password && (
+          <span className="text-xs text-red-600">Enter your staff password.</span>
+        )}
       </label>
       <Link href="/forgot-password" className="text-right text-sm text-[#3854AC]">
         Forgot password?

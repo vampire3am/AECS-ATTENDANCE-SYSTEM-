@@ -48,8 +48,9 @@ export function Nav({ teacher = false }: { teacher?: boolean }) {
   const teacherItems = [
     ['home', 'Today', '/teacher'],
     ['classes', 'My batches', '/teacher/classes'],
-    ['history', 'History', '/teacher/history'],
-    ['profile', 'Profile', '/teacher/profile'],
+    ['students', 'Students', '/teacher/students'],
+    ['reports', 'Reports', '/teacher/reports'],
+    ['profile', 'Account', '/teacher/profile'],
   ];
   function renderItem([key, label, href]: string[]) {
     const Icon = icons[key as keyof typeof icons];
@@ -65,7 +66,7 @@ export function Nav({ teacher = false }: { teacher?: boolean }) {
         aria-current={active ? 'page' : undefined}
         className={
           teacher
-            ? `flex min-h-14 flex-1 flex-col items-center justify-center gap-1 rounded-lg text-xs font-medium ${active ? 'bg-blue-50 text-[#3854AC]' : 'text-slate-500'}`
+            ? `flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg text-xs font-medium ${active ? 'bg-blue-50 text-[#3854AC]' : 'text-slate-500'}`
             : `flex min-h-12 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold ${active ? 'bg-[#eef1fb] text-[#3854AC] shadow-[inset_3px_0_0_#ED7824]' : 'text-slate-600 hover:bg-slate-100'}`
         }
       >

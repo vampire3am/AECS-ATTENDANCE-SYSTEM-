@@ -182,6 +182,24 @@ export const teacherAssignments = pgTable(
     index('assignment_batch_idx').on(t.batchId),
   ],
 );
+export const teacherCourseAssignments = pgTable(
+  'teacher_course_assignments',
+  {
+    id: id(),
+    teacherId: uuid('teacher_id')
+      .notNull()
+      .references(() => profiles.id),
+    courseId: uuid('course_id')
+      .notNull()
+      .references(() => courses.id),
+    active: boolean('active').notNull().default(true),
+    assignedAt: created(),
+  },
+  (t) => [
+    unique('teacher_course_key').on(t.teacherId, t.courseId),
+    index('teacher_course_teacher_idx').on(t.teacherId),
+  ],
+);
 export const classSessions = pgTable(
   'class_sessions',
   {

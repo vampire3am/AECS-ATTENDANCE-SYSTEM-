@@ -5,10 +5,10 @@ import { reportRows } from '@/lib/services/queries';
 import { ZodError } from 'zod';
 export async function GET(request: Request) {
   try {
-    await requireActor(true);
+    const actor = await requireActor();
     const params = Object.fromEntries(new URL(request.url).searchParams);
     const filters = parseReportFilters(params);
-    const rows = await reportRows(filters);
+    const rows = await reportRows(filters, actor);
     const format = params.format;
     const headers = {
       'Cache-Control': 'private, no-store',

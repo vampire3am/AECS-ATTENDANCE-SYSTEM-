@@ -11,9 +11,11 @@ import { EnrollmentCode } from '@/components/shared/enrollment-code';
 export function AddStudent({
   batches,
   batchId,
+  teacher = false,
 }: {
   batches: { id: string; name: string; courseName: string }[];
   batchId?: string;
+  teacher?: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false),
@@ -24,6 +26,7 @@ export function AddStudent({
     enrollmentCode: string;
     studentCode: string;
     enrolledOn: string;
+    batchId: string;
   } | null>(null);
   return (
     <>
@@ -68,10 +71,12 @@ export function AddStudent({
                 variant="outline"
                 onClick={() => {
                   setOpen(false);
-                  router.push('/admin/students/' + result.id);
+                  router.push(
+                    teacher ? '/teacher/classes/' + result.batchId : '/admin/students/' + result.id,
+                  );
                 }}
               >
-                View student
+                {teacher ? 'View batch' : 'View student'}
               </Button>
             </div>
           </div>
@@ -79,7 +84,10 @@ export function AddStudent({
           <div className="mt-6 space-y-4">
             <p className="muted">Create your first batch before adding students.</p>
             <Button asChild>
-              <Link href="/admin/batches" onClick={() => setOpen(false)}>
+              <Link
+                href={teacher ? '/teacher/classes' : '/admin/batches'}
+                onClick={() => setOpen(false)}
+              >
                 Create a batch →
               </Link>
             </Button>

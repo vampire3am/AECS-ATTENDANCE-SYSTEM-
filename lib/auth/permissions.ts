@@ -1,6 +1,13 @@
 import { cache } from 'react';
 import { db, type Tx } from '@/lib/db';
-import { batches, courses, profiles, teacherAssignments } from '@/lib/db/schema';
+import {
+  batches,
+  courses,
+  profiles,
+  teacherAssignments,
+  teacherCourseAssignments,
+  enrollments,
+} from '@/lib/db/schema';
 import { invariant } from '@/lib/errors';
 import { and, eq, sql } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
@@ -94,4 +101,45 @@ export async function requireBatch(tx: Tx, actor: Actor, batchId: string, active
     invariant(assignment, 'This batch is not assigned to you.', 403);
   }
   return batch;
+}
+export async function requireCourse(tx: Tx, actor: Actor, courseId: string) {
+  const [course] = await tx
+    .select({ id: courses.id, status: courses.status })
+    .from(courses)
+    .where(eq(courses.id, courseId))
+    .for('share');
+  invariant(course?.status === 'active', 'Choose an active course.', 409);
+  if (actor.role !== 'super_admin') {
+    const [grant] = await tx
+      .select({ id: teacherCourseAssignments.id })
+      .from(teacherCourseAssignments)
+      .where(
+        and(
+          eq(teacherCourseAssignments.teacherId, actor.id),
+          eq(teacherCourseAssignments.courseId, courseId),
+          eq(teacherCourseAssignments.active, true),
+        ),
+      )
+      .for('share');
+    invariant(grant, 'Your admin has not granted access to create batches in this course.', 403);
+  }
+  return course;
+}
+export async function requireVisibleStudent(tx: Tx, actor: Actor, studentId: string) {
+  if (actor.role === 'super_admin') return;
+  const [row] = await tx
+    .select({ id: enrollments.id })
+    .from(enrollments)
+    .innerJoin(
+      teacherAssignments,
+      and(
+        eq(teacherAssignments.batchId, enrollments.batchId),
+        eq(teacherAssignments.teacherId, actor.id),
+        eq(teacherAssignments.active, true),
+      ),
+    )
+    .where(eq(enrollments.studentId, studentId))
+    .limit(1)
+    .for('share');
+  invariant(row, 'This student is not in your assigned batches.', 403);
 }
