@@ -329,7 +329,11 @@ textarea {
   max-height: 90dvh;
 }
 @supports not (height: 100dvh) {
+  .min-h-dvh,
   .student-landing {
     min-height: 100vh;
+  }
+  .workspace-dialog {
+    max-height: 90vh;
   }
 }
