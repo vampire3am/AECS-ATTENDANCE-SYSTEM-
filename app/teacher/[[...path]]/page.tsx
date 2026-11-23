@@ -12,7 +12,7 @@ import { BatchSetup } from '@/components/workflows/batch-setup';
 import { AddStudent } from '@/components/workflows/add-student';
 import { Button } from '@/components/ui/button';
 import { Table } from '@/features/admin/pages/tables';
-import { requireActor } from '@/lib/auth/permissions';
+import { requirePageActor } from '@/lib/auth/permissions';
 import { getSession, listSessions } from '@/lib/services/attendance';
 import { teacherBatch, teacherStudents } from '@/lib/services/teacher-workspace';
 import { catalog, reportRows } from '@/lib/services/queries';
@@ -29,7 +29,7 @@ export default async function TeacherPage({
   params: Promise<{ path?: string[] }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const actor = await requireActor();
+  const actor = await requirePageActor();
   const { path = [] } = await params;
   const [section, id] = path;
   if (path.length > 2 || (id && !uuid.safeParse(id).success)) notFound();

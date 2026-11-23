@@ -9,7 +9,7 @@ const Trend = dynamic(() => import('@/components/admin/trend').then((m) => m.Tre
 });
 import { Badge, PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
-import { requireActor } from '@/lib/auth/permissions';
+import { requirePageActor } from '@/lib/auth/permissions';
 import { listSessions } from '@/lib/services/attendance';
 import { dashboard } from '@/lib/services/queries';
 import { localDate } from '@/lib/utils';
@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 export default async function Dashboard() {
-  const actor = await requireActor(true);
+  const actor = await requirePageActor(true);
   const [d, sessions] = await Promise.all([
     dashboard(),
     listSessions(actor, { date: localDate() }),

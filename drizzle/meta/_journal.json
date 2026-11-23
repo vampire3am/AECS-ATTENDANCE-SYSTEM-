@@ -50,6 +50,13 @@
       "when": 1795413540438,
       "tag": "0006_funny_karnak",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795416210101,
+      "tag": "0007_course_revocation",
+      "breakpoints": true
     }
   ]
 }

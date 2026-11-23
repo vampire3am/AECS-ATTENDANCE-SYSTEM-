@@ -1,4 +1,4 @@
-import type { Actor } from '@/lib/auth/permissions';
+import { teacherBatchScope, type Actor } from '@/lib/auth/permissions';
 import { db } from '@/lib/db';
 import * as s from '@/lib/db/schema';
 import { localDate } from '@/lib/utils';
@@ -7,10 +7,7 @@ export async function catalog(
   actor: Actor,
   include: ('batches' | 'courses' | 'teachers')[] = ['batches', 'courses', 'teachers'],
 ) {
-  const assigned =
-    actor.role === 'teacher'
-      ? sql`exists(select 1 from teacher_assignments a where a.batch_id=${s.batches.id} and a.teacher_id=${actor.id} and a.active)`
-      : undefined;
+  const assigned = actor.role === 'teacher' ? teacherBatchScope(actor.id, s.batches.id) : undefined;
   const batchesQuery = include.includes('batches')
     ? db
         .select({
@@ -125,7 +122,7 @@ export async function reportRows(
  select a.student_id,cs.batch_id,a.status,cs.session_date,row_number() over(partition by a.student_id,cs.batch_id order by cs.session_date desc,cs.start_time desc) as n
  from attendance_records a join class_sessions cs on cs.id=a.session_id join batches b on b.id=cs.batch_id
  where cs.status='submitted'
- ${actor?.role === 'teacher' ? sql`and exists(select 1 from teacher_assignments ta where ta.batch_id=cs.batch_id and ta.teacher_id=${actor.id} and ta.active)` : sql``}
+ ${actor?.role === 'teacher' ? sql`and ${teacherBatchScope(actor.id, sql`cs.batch_id`)}` : sql``}
  ${filters.from ? sql`and cs.session_date>=${filters.from}::date` : sql``} ${filters.to ? sql`and cs.session_date<=${filters.to}::date` : sql``}
  ${filters.batchId ? sql`and cs.batch_id=${filters.batchId}::uuid` : sql``} ${filters.courseId ? sql`and b.course_id=${filters.courseId}::uuid` : sql``}
  ${filters.studentId ? sql`and a.student_id=${filters.studentId}::uuid` : sql``} ${filters.teacherId ? sql`and cs.submitted_by=${filters.teacherId}::uuid` : sql``}
@@ -141,7 +138,7 @@ export async function reportRows(
  join batches b on b.id=e.batch_id join courses c on c.id=b.course_id cross join app_settings settings
  left join aggregated a on a.student_id=st.id and a.batch_id=b.id
  where true ${filters.studentId ? sql`and st.id=${filters.studentId}::uuid` : sql``} ${filters.batchId ? sql`and b.id=${filters.batchId}::uuid` : sql``} ${filters.courseId ? sql`and c.id=${filters.courseId}::uuid` : sql``}
- ${actor?.role === 'teacher' ? sql`and exists(select 1 from teacher_assignments ta where ta.batch_id=b.id and ta.teacher_id=${actor.id} and ta.active)` : sql``}
+ ${actor?.role === 'teacher' ? sql`and ${teacherBatchScope(actor.id, sql`b.id`)}` : sql``}
  order by st.full_name,b.name limit 5000`);
   return result.rows;
 }

@@ -2,7 +2,13 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { hash } from '@node-rs/argon2';
 import { and, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { actorTransaction, requireBatch, requireCourse, type Actor } from '@/lib/auth/permissions';
+import {
+  actorTransaction,
+  requireBatch,
+  requireCourse,
+  teacherBatchScope,
+  type Actor,
+} from '@/lib/auth/permissions';
 import { db } from '@/lib/db';
 import * as s from '@/lib/db/schema';
 import { invariant } from '@/lib/errors';
@@ -327,11 +333,11 @@ export async function todayBatches(actor: Actor) {
   const result =
     await db.execute<TodayBatch>(sql`select b.id,b.name,c.name as "courseName",b.start_date::text as "startDate",b.end_date::text as "endDate",
     (select count(*)::int from enrollments e join students st on st.id=e.student_id where e.batch_id=b.id and st.status='active' and e.enrolled_on<=${today}::date and (e.ended_on is null or e.ended_on>${today}::date)) as "studentCount",
-    coalesce((select string_agg(p.full_name,', ' order by p.full_name) from teacher_assignments a join profiles p on p.id=a.teacher_id where a.batch_id=b.id and a.active and p.status='active'),'Admin-led') as "teacherNames",
+    coalesce((select string_agg(p.full_name,', ' order by p.full_name) from teacher_assignments a join profiles p on p.id=a.teacher_id join teacher_course_assignments g on g.teacher_id=a.teacher_id and g.course_id=b.course_id and g.active where a.batch_id=b.id and a.active and p.status='active'),'Admin-led') as "teacherNames",
     coalesce((select json_agg(json_build_object('id',sc.id,'startTime',sc.start_time::text,'endTime',sc.end_time::text) order by sc.start_time) from batch_schedules sc where sc.batch_id=b.id and sc.status='active' and sc.weekday=${isoWeekday(today)} and sc.effective_from<=${today}::date and (sc.effective_until is null or sc.effective_until>=${today}::date)),'[]'::json) as schedules,
     coalesce((select json_agg(json_build_object('id',cs.id,'status',cs.status,'startTime',cs.start_time::text,'endTime',cs.end_time::text) order by cs.start_time) from class_sessions cs where cs.batch_id=b.id and cs.session_date=${today}::date),'[]'::json) as sessions
     from batches b join courses c on c.id=b.course_id where b.status='active' and c.status='active'
-    ${actor.role === 'teacher' ? sql`and exists(select 1 from teacher_assignments a where a.batch_id=b.id and a.teacher_id=${actor.id} and a.active)` : sql``}
+    ${actor.role === 'teacher' ? sql`and ${teacherBatchScope(actor.id, sql`b.id`)}` : sql``}
     order by b.name`);
   return result.rows;
 }

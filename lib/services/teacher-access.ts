@@ -1,4 +1,4 @@
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, notInArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { actorTransaction, type Actor } from '@/lib/auth/permissions';
 import * as s from '@/lib/db/schema';
@@ -27,7 +27,13 @@ export async function setTeacherCourses(actor: Actor, raw: unknown) {
     await tx
       .update(s.teacherCourseAssignments)
       .set({ active: false })
-      .where(eq(s.teacherCourseAssignments.teacherId, input.teacherId));
+      .where(
+        and(
+          eq(s.teacherCourseAssignments.teacherId, input.teacherId),
+          eq(s.teacherCourseAssignments.active, true),
+          courseIds.length ? notInArray(s.teacherCourseAssignments.courseId, courseIds) : undefined,
+        ),
+      );
     for (const courseId of courseIds)
       await tx
         .insert(s.teacherCourseAssignments)
@@ -36,15 +42,13 @@ export async function setTeacherCourses(actor: Actor, raw: unknown) {
           target: [s.teacherCourseAssignments.teacherId, s.teacherCourseAssignments.courseId],
           set: { active: true, assignedAt: new Date() },
         });
-    await tx
-      .insert(s.auditLogs)
-      .values({
-        actorId: actor.id,
-        action: 'teacher_course_access_updated',
-        entityType: 'profile',
-        entityId: input.teacherId,
-        metadata: { courseIds },
-      });
+    await tx.insert(s.auditLogs).values({
+      actorId: actor.id,
+      action: 'teacher_course_access_updated',
+      entityType: 'profile',
+      entityId: input.teacherId,
+      metadata: { courseIds },
+    });
     return { updated: true };
   });
 }

@@ -35,6 +35,13 @@ interface OfflineDB extends DBSchema {
   drafts: { key: string; value: Draft };
 }
 export const draftKey = (actorId: string, sessionId: string) => `${actorId}:${sessionId}`;
+export function authorizedCachedSessions(
+  rows: SessionModel[],
+  access: { actorId: string; batchIds: string[] },
+) {
+  const allowed = new Set(access.batchIds);
+  return rows.filter((row) => row.actorId === access.actorId && allowed.has(row.session.batchId));
+}
 export const offlineDb = () =>
   openDB<OfflineDB>('aecs-attend-reset-20261122', 1, {
     upgrade(db) {

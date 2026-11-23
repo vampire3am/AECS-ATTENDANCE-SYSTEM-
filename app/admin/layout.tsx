@@ -1,15 +1,10 @@
 import { Brand } from '@/components/shared/brand';
 import { Nav } from '@/components/shared/nav';
 import { SignOut } from '@/components/shared/sign-out';
-import { requireActor } from '@/lib/auth/permissions';
+import { requirePageActor } from '@/lib/auth/permissions';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  try {
-    await requireActor(true);
-  } catch {
-    redirect('/login');
-  }
+  await requirePageActor(true);
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[256px_1fr]">
       <aside className="border-b border-slate-200 bg-white p-5 lg:fixed lg:inset-y-0 lg:w-[256px] lg:border-r">

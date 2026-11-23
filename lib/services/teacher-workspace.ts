@@ -1,5 +1,10 @@
 import { and, eq, sql } from 'drizzle-orm';
-import { actorTransaction, requireBatch, type Actor } from '@/lib/auth/permissions';
+import {
+  actorTransaction,
+  requireBatch,
+  teacherBatchScope,
+  type Actor,
+} from '@/lib/auth/permissions';
 import * as s from '@/lib/db/schema';
 import { uuid } from '@/lib/validations';
 import { localDate } from '@/lib/utils';
@@ -30,9 +35,7 @@ export async function teacherStudents(actor: Actor, batchId?: string) {
       .where(
         and(
           batchId ? eq(s.batches.id, batchId) : undefined,
-          actor.role === 'teacher'
-            ? sql`exists(select 1 from teacher_assignments a where a.batch_id=${s.batches.id} and a.teacher_id=${actor.id} and a.active)`
-            : undefined,
+          actor.role === 'teacher' ? teacherBatchScope(actor.id, s.batches.id) : undefined,
           sql`(${s.enrollments.endedOn} is null or ${s.enrollments.endedOn}>${localDate()}::date)`,
         ),
       )

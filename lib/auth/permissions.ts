@@ -8,8 +8,9 @@ import {
   teacherCourseAssignments,
   enrollments,
 } from '@/lib/db/schema';
-import { invariant } from '@/lib/errors';
-import { and, eq, sql } from 'drizzle-orm';
+import { AppError, invariant } from '@/lib/errors';
+import { redirect } from 'next/navigation';
+import { and, eq, sql, type SQLWrapper } from 'drizzle-orm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from './options';
 export type Actor = {
@@ -20,6 +21,13 @@ export type Actor = {
   role: 'super_admin' | 'teacher';
   sessionVersion: number;
 };
+// The same intersection policy is used for lists, reports and direct object access.
+export const teacherBatchScope = (teacherId: string, batchColumn: SQLWrapper) => sql`exists(
+  select 1 from teacher_assignments scoped_a
+  join batches scoped_b on scoped_b.id=scoped_a.batch_id
+  join teacher_course_assignments scoped_g on scoped_g.teacher_id=scoped_a.teacher_id and scoped_g.course_id=scoped_b.course_id and scoped_g.active
+  where scoped_a.teacher_id=${teacherId} and scoped_a.batch_id=${batchColumn} and scoped_a.active
+)`;
 const currentActor = cache(async (): Promise<Actor> => {
   const session = await getServerSession(authOptions);
   invariant(session?.user?.id, 'Please sign in.', 401);
@@ -46,6 +54,16 @@ export async function requireActor(admin = false): Promise<Actor> {
   const user = await currentActor();
   invariant(!admin || user.role === 'super_admin', 'Administrator access required.', 403);
   return user;
+}
+export async function requirePageActor(admin = false): Promise<Actor> {
+  try {
+    return await requireActor(admin);
+  } catch (error) {
+    if (error instanceof AppError && error.status === 401)
+      redirect(error.message === 'Please sign in.' ? '/login' : '/login?reason=access-changed');
+    if (error instanceof AppError && error.status === 403) redirect('/teacher');
+    throw error;
+  }
 }
 export async function actorTransaction<T>(actor: Actor, work: (tx: Tx) => Promise<T>): Promise<T> {
   return db.transaction(async (tx) => {
@@ -90,6 +108,14 @@ export async function requireBatch(tx: Tx, actor: Actor, batchId: string, active
     const [assignment] = await tx
       .select()
       .from(teacherAssignments)
+      .innerJoin(
+        teacherCourseAssignments,
+        and(
+          eq(teacherCourseAssignments.teacherId, actor.id),
+          eq(teacherCourseAssignments.courseId, batch.courseId),
+          eq(teacherCourseAssignments.active, true),
+        ),
+      )
       .where(
         and(
           eq(teacherAssignments.batchId, batchId),
@@ -98,7 +124,7 @@ export async function requireBatch(tx: Tx, actor: Actor, batchId: string, active
         ),
       )
       .for('share');
-    invariant(assignment, 'This batch is not assigned to you.', 403);
+    invariant(assignment, 'Course or batch access has been removed. Contact your admin.', 403);
   }
   return batch;
 }
@@ -130,15 +156,9 @@ export async function requireVisibleStudent(tx: Tx, actor: Actor, studentId: str
   const [row] = await tx
     .select({ id: enrollments.id })
     .from(enrollments)
-    .innerJoin(
-      teacherAssignments,
-      and(
-        eq(teacherAssignments.batchId, enrollments.batchId),
-        eq(teacherAssignments.teacherId, actor.id),
-        eq(teacherAssignments.active, true),
-      ),
+    .where(
+      and(eq(enrollments.studentId, studentId), teacherBatchScope(actor.id, enrollments.batchId)),
     )
-    .where(eq(enrollments.studentId, studentId))
     .limit(1)
     .for('share');
   invariant(row, 'This student is not in your assigned batches.', 403);

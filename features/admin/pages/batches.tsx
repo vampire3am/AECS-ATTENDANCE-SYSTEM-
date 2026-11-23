@@ -35,6 +35,14 @@ export async function BatchesPage({ actor, id, tab, c }: PageContext) {
         .select({ fullName: s.profiles.fullName, email: s.profiles.email })
         .from(s.teacherAssignments)
         .innerJoin(s.profiles, eq(s.profiles.id, s.teacherAssignments.teacherId))
+        .innerJoin(
+          s.teacherCourseAssignments,
+          and(
+            eq(s.teacherCourseAssignments.teacherId, s.teacherAssignments.teacherId),
+            eq(s.teacherCourseAssignments.courseId, batch.courseId),
+            eq(s.teacherCourseAssignments.active, true),
+          ),
+        )
         .where(and(eq(s.teacherAssignments.batchId, id), eq(s.teacherAssignments.active, true))),
     ]);
     return (

@@ -1,8 +1,37 @@
 import 'fake-indexeddb/auto';
 import { openDB } from 'idb';
 import { describe, expect, it } from 'vitest';
-import { draftKey, offlineDb, type Draft, type SessionModel } from '../lib/offline';
+import {
+  authorizedCachedSessions,
+  draftKey,
+  offlineDb,
+  type Draft,
+  type SessionModel,
+} from '../lib/offline';
 describe('Offline draft storage', () => {
+  it('hides cached rosters when their course/batch access or account is no longer authorized', () => {
+    const actorId = crypto.randomUUID(),
+      batchId = crypto.randomUUID();
+    const model: SessionModel = {
+      actorId,
+      session: {
+        id: crypto.randomUUID(),
+        batchId,
+        sessionDate: '2026-11-23',
+        startTime: '07:00',
+        endTime: '08:00',
+        status: 'open',
+        version: 1,
+      },
+      batch: { name: 'Private batch' },
+      records: [],
+    };
+    expect(authorizedCachedSessions([model], { actorId, batchIds: [] })).toEqual([]);
+    expect(
+      authorizedCachedSessions([model], { actorId: crypto.randomUUID(), batchIds: [batchId] }),
+    ).toEqual([]);
+    expect(authorizedCachedSessions([model], { actorId, batchIds: [batchId] })).toEqual([model]);
+  });
   it('does not expose rosters or drafts saved before the authorized live-data reset', async () => {
     const legacy = await openDB('aecs-attend', 1, {
       upgrade(db) {

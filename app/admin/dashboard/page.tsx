@@ -1,5 +1,5 @@
-import { requireActor } from '@/lib/auth/permissions';
+import { requirePageActor } from '@/lib/auth/permissions';
 import { Today } from '@/features/today/page';
 export default async function Dashboard() {
-  return <Today actor={await requireActor(true)} />;
+  return <Today actor={await requirePageActor(true)} />;
 }

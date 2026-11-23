@@ -23,7 +23,8 @@ import {
 import { setTeacherCourses } from '../lib/services/teacher-access';
 import { teacherBatch, teacherStudents } from '../lib/services/teacher-workspace';
 import { catalog, reportRows, studentList } from '../lib/services/queries';
-import { getSession } from '../lib/services/attendance';
+import { getSession, listSessions } from '../lib/services/attendance';
+import { accessState } from '../lib/services/access-state';
 import { isoWeekday, localDate } from '../lib/utils';
 const enabled =
   process.env.TEST_DATABASE_BRANCH === 'integration-tests' && Boolean(process.env.DATABASE_URL);
@@ -220,17 +221,57 @@ describe.skipIf(!enabled)('Teacher isolation and staff login security', () => {
       createBatchSetup({ ...t1, role: 'super_admin' }, setup(pte, 'Spoofed admin')),
     ).rejects.toMatchObject({ status: 401 });
   });
-  it('revokes new-batch creation when course access is removed and batch access when unassigned', async () => {
-    await setTeacherCourses(admin, { teacherId: t1.id, courseIds: [] });
-    await expect(createBatchSetup(t1, setup(ielts, 'Revoked'))).rejects.toMatchObject({
-      status: 403,
-    });
+  it('revokes an existing session, all course batches, private rosters, history and reports together', async () => {
     session1 = (await startClass(t1, { batchId: b1 })).id;
     await expect(getSession(t2, session1)).rejects.toMatchObject({ status: 403 });
-    await assignTeacher(admin, { teacherId: t1.id, batchId: b1, active: false });
+    const unchangedVersion = t2.sessionVersion;
+    await setTeacherCourses(admin, { teacherId: t2.id, courseIds: [pte, ielts] });
+    expect((await accessState(t2)).sessionVersion).toBe(unchangedVersion);
+    expect((await catalog(t2)).batches.map((b) => b.id)).toEqual([b2]);
+    await setTeacherCourses(admin, { teacherId: t1.id, courseIds: [] });
+    await expect(accessState(t1)).rejects.toMatchObject({ status: 401 });
+    await expect(teacherStudents(t1)).rejects.toMatchObject({ status: 401 });
+    await expect(createBatchSetup(t1, setup(ielts, 'Revoked'))).rejects.toMatchObject({
+      status: 401,
+    });
+    [t1] = await db.select().from(s.profiles).where(eq(s.profiles.id, t1.id));
+    expect((await accessState(t1)).batchIds).toEqual([]);
+    expect((await catalog(t1)).batches).toEqual([]);
+    expect(await todayBatches(t1)).toEqual([]);
+    expect(await teacherStudents(t1)).toEqual([]);
+    expect(await listSessions(t1)).toEqual([]);
+    expect(await reportRows({}, t1)).toEqual([]);
     await expect(teacherBatch(t1, b1)).rejects.toMatchObject({ status: 403 });
     await expect(getSession(t1, session1)).rejects.toMatchObject({ status: 403 });
-    expect((await teacherStudents(t1)).every((r) => r.batchId !== b1)).toBe(true);
+    await expect(startClass(t1, { batchId: b1 })).rejects.toMatchObject({ status: 403 });
+    const assignment = await db
+      .select()
+      .from(s.teacherAssignments)
+      .where(eq(s.teacherAssignments.teacherId, t1.id));
+    expect(assignment.every((a) => !a.active)).toBe(true);
+  });
+  it('denies access even if a stale batch assignment exists without course permission', async () => {
+    await db.insert(s.teacherAssignments).values({ teacherId: t1.id, batchId: b1 });
+    expect((await catalog(t1)).batches).toEqual([]);
+    expect(await todayBatches(t1)).toEqual([]);
+    expect(await teacherStudents(t1)).toEqual([]);
+    expect(await reportRows({}, t1)).toEqual([]);
+    expect(await listSessions(t1)).toEqual([]);
+    await expect(teacherBatch(t1, b1)).rejects.toMatchObject({ status: 403 });
+    await expect(
+      createEnrolledStudent(t1, { fullName: 'Not allowed', phone: '9800000000', batchId: b1 }),
+    ).rejects.toMatchObject({ status: 403 });
+    await db
+      .update(s.teacherAssignments)
+      .set({ active: false })
+      .where(eq(s.teacherAssignments.teacherId, t1.id));
+  });
+  it('does not restore old batch assignments when a course is added back', async () => {
+    await setTeacherCourses(admin, { teacherId: t1.id, courseIds: [ielts] });
+    expect((await catalog(t1)).courses.map((c) => c.id)).toEqual([ielts]);
+    expect((await catalog(t1)).batches).toEqual([]);
+    await assignTeacher(admin, { teacherId: t1.id, batchId: b1, active: true });
+    expect((await catalog(t1)).batches.map((b) => b.id)).toEqual([b1]);
   });
   it('rejects SQL injection as credentials and treats search text as parameter data', async () => {
     expect(await authenticateStaff({ email: "admin' OR 1=1 --", password: 'anything' })).toBeNull();

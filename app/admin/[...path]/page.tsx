@@ -8,7 +8,7 @@ import { ReportsPage } from '@/features/admin/pages/reports';
 import { SettingsPage } from '@/features/admin/pages/settings';
 import { StudentsPage } from '@/features/admin/pages/students';
 import { TeachersPage } from '@/features/admin/pages/teachers';
-import { requireActor } from '@/lib/auth/permissions';
+import { requirePageActor } from '@/lib/auth/permissions';
 import { catalog } from '@/lib/services/queries';
 import { uuid } from '@/lib/validations';
 import { notFound } from 'next/navigation';
@@ -30,7 +30,7 @@ export default async function AdminPage({
   params: Promise<{ path: string[] }>;
   searchParams: Promise<Search>;
 }) {
-  const actor = await requireActor(true);
+  const actor = await requirePageActor(true);
   const { path } = await params;
   const q = await searchParams;
   const [section, id, tab] = path;

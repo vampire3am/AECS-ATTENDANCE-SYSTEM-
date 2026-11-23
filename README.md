@@ -56,3 +56,5 @@ Common attendance QR: Admin > Batches > Download QR. Print the same QR for all c
 Pages stream a branded loading state without artificial delay. Database cold starts and network conditions can still affect response time.
 
 Teacher setup: Manage > Teachers > Course access selects the courses where that teacher may create batches. Teachers sign in with their own credentials and use Today, My batches, Students and Reports. Creating a batch automatically assigns it to that teacher; sharing a course never shares another teacher’s batches. Assign or remove access to a particular existing batch from its admin overview. Teacher reports and exports are restricted to assigned batches.
+
+Removing a teacher’s course access now revokes all batch access under that course and requires the teacher to sign in again. To restore a specific old batch after re-granting a course, explicitly assign that batch. Protected cached rosters require a current online permission check before reopening; drafts remain preserved. The Super Admin still sees all data.

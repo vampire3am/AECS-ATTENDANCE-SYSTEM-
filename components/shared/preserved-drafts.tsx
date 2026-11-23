@@ -2,19 +2,37 @@
 import { Button } from '@/components/ui/button';
 import { offlineDb, type Draft } from '@/lib/offline';
 import { useEffect, useState } from 'react';
-export function PreservedDrafts() {
+export function PreservedDrafts({
+  actorId,
+  sessionIds,
+}: {
+  actorId: string;
+  sessionIds: string[];
+}) {
   const [drafts, setDrafts] = useState<Draft[]>([]);
   useEffect(() => {
-    void offlineDb()
-      .then((db) => db.getAll('drafts'))
-      .then((rows) =>
-        setDrafts(
-          rows.filter(
-            (r) => r.sync !== 'SYNCED' && r.actorId === localStorage.getItem('aecs-offline-actor'),
-          ),
-        ),
-      );
-  }, []);
+    let active = true;
+    void (async () => {
+      const db = await offlineDb();
+      try {
+        const rows = await db.getAll('drafts');
+        if (active)
+          setDrafts(
+            rows.filter(
+              (r) =>
+                r.sync !== 'SYNCED' && r.actorId === actorId && sessionIds.includes(r.sessionId),
+            ),
+          );
+      } finally {
+        db.close();
+      }
+    })().catch(() => {
+      if (active) setDrafts([]);
+    });
+    return () => {
+      active = false;
+    };
+  }, [actorId, sessionIds]);
   return (
     <section className="panel mt-6">
       <h2 className="font-semibold">Preserved drafts</h2>

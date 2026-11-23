@@ -1,4 +1,9 @@
-import { actorTransaction, requireBatch, type Actor } from '@/lib/auth/permissions';
+import {
+  actorTransaction,
+  requireBatch,
+  teacherBatchScope,
+  type Actor,
+} from '@/lib/auth/permissions';
 import { db, type Tx } from '@/lib/db';
 import {
   attendanceRecords,
@@ -28,9 +33,7 @@ export async function generateToday(actor: Actor) {
           eq(batches.status, 'active'),
           sql`exists(select 1 from courses c where c.id=${batches.courseId} and c.status='active')`,
           sql`${batchSchedules.effectiveFrom}<=${today}::date and (${batchSchedules.effectiveUntil} is null or ${batchSchedules.effectiveUntil}>=${today}::date) and ${batches.startDate}<=${today}::date and (${batches.endDate} is null or ${batches.endDate}>=${today}::date)`,
-          actor.role === 'teacher'
-            ? sql`exists(select 1 from teacher_assignments a where a.batch_id=${batches.id} and a.teacher_id=${actor.id} and a.active)`
-            : undefined,
+          actor.role === 'teacher' ? teacherBatchScope(actor.id, batches.id) : undefined,
         ),
       );
     for (const { schedule, batch } of query) {
@@ -275,12 +278,8 @@ export async function listSessions(
         filters.batchId ? eq(batches.id, filters.batchId) : undefined,
         filters.courseId ? eq(batches.courseId, filters.courseId) : undefined,
         filters.status ? sql`${classSessions.status}::text=${filters.status}` : undefined,
-        actor.role === 'teacher'
-          ? sql`exists(select 1 from teacher_assignments a where a.batch_id=${batches.id} and a.teacher_id=${actor.id} and a.active)`
-          : undefined,
-        filters.teacherId
-          ? sql`exists(select 1 from teacher_assignments a where a.batch_id=${batches.id} and a.teacher_id=${filters.teacherId} and a.active)`
-          : undefined,
+        actor.role === 'teacher' ? teacherBatchScope(actor.id, batches.id) : undefined,
+        filters.teacherId ? teacherBatchScope(filters.teacherId, batches.id) : undefined,
       ),
     )
     .orderBy(sql`${classSessions.sessionDate} desc`, classSessions.startTime)

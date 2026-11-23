@@ -21,7 +21,7 @@ export function TeacherCourseAccess({
       <Button
         variant="outline"
         onClick={() => {
-          setIds(selected);
+          setIds(selected.filter((id) => courses.some((course) => course.id === id)));
           setOpen(true);
         }}
       >
@@ -31,7 +31,7 @@ export function TeacherCourseAccess({
         open={open}
         onOpenChange={setOpen}
         title="Assign teacher courses"
-        description="The teacher may create their own batches in these courses. Other teachers’ batches remain private."
+        description="These courses control the teacher’s access. Removing a course revokes all its batch access and signs the teacher out."
       >
         <form
           className="mt-6 space-y-5"
@@ -74,7 +74,8 @@ export function TeacherCourseAccess({
             )}
           </fieldset>
           <p className="muted">
-            Existing batch assignments are managed separately from each batch’s settings.
+            Removing a course blocks its batches, students, attendance and reports immediately.
+            Adding a course does not restore old batch assignments; assign those explicitly.
           </p>
           {error && (
             <p role="alert" className="text-sm text-red-600">

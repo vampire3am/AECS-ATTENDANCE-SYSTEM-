@@ -1,7 +1,12 @@
 import { Brand } from '@/components/shared/brand';
 import Link from 'next/link';
 import { LoginForm } from './sign-in';
-export default function Login() {
+export default async function Login({
+  searchParams,
+}: {
+  searchParams: Promise<{ reason?: string }>;
+}) {
+  const { reason } = await searchParams;
   return (
     <main className="grid min-h-dvh lg:grid-cols-2">
       <section className="hidden flex-col justify-between bg-[#2B4088] p-14 text-white lg:flex">
@@ -31,6 +36,11 @@ export default function Login() {
           </p>
           <h2 className="page-title">Welcome back</h2>
           <p className="mt-3 text-slate-500">Sign in to manage your classes and attendance.</p>
+          {reason === 'access-changed' && (
+            <p role="status" className="mt-5 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">
+              Your session or access changed. Sign in again to load your updated workspace.
+            </p>
+          )}
           <LoginForm />
           <Link
             href="/student"
