@@ -2,34 +2,51 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, CheckCircle2, LoaderCircle } from 'lucide-react';
-import { createBatchSetupAction } from '@/app/actions';
+import { batchSetupOptionsAction, createBatchSetupAction } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 
 type Option = { id: string; name: string };
-export function BatchSetup({
-  courses,
-  teachers,
-  today,
-}: {
-  courses: Option[];
-  teachers: Option[];
-  today: string;
-}) {
+export function BatchSetup({ today }: { today: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
-  const [course, setCourse] = useState(courses[0]?.id ?? 'new'),
+  const [courses, setCourses] = useState<Option[]>([]),
+    [teachers, setTeachers] = useState<Option[]>([]);
+  const [loadingOptions, setLoadingOptions] = useState(false),
+    [loaded, setLoaded] = useState(false);
+  const [course, setCourse] = useState('new'),
     [teacher, setTeacher] = useState('admin');
   const [days, setDays] = useState([1, 2, 3, 4, 5]);
   const [result, setResult] = useState<{
     id: string;
     teacherAccess: { email: string; password: string } | null;
   } | null>(null);
+  async function openForm() {
+    setOpen(true);
+    setResult(null);
+    setError('');
+    setLoaded(false);
+    setLoadingOptions(true);
+    try {
+      const r = await batchSetupOptionsAction();
+      if (r.ok) {
+        setCourses(r.data.courses);
+        setTeachers(r.data.teachers);
+        setCourse(r.data.courses[0]?.id ?? 'new');
+        setTeacher('admin');
+        setLoaded(true);
+      } else setError(r.error);
+    } catch {
+      setError('Unable to load course and teacher choices. Please retry.');
+    } finally {
+      setLoadingOptions(false);
+    }
+  }
   return (
     <>
-      <Button onClick={() => setOpen(true)}>
+      <Button onClick={() => void openForm()}>
         <Plus size={17} /> Create batch
       </Button>
       <Dialog
@@ -68,6 +85,21 @@ export function BatchSetup({
             >
               Add students to this batch →
             </Button>
+          </div>
+        ) : loadingOptions ? (
+          <div
+            role="status"
+            className="flex items-center justify-center gap-3 py-12 text-sm text-slate-500"
+          >
+            <LoaderCircle size={20} className="animate-spin" />
+            Loading course and teacher choices…
+          </div>
+        ) : !loaded ? (
+          <div className="mt-6 space-y-4">
+            <p role="alert" className="text-sm text-red-600">
+              {error}
+            </p>
+            <Button onClick={() => void openForm()}>Try again</Button>
           </div>
         ) : (
           <form

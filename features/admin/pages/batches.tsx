@@ -284,13 +284,7 @@ export async function BatchesPage({ actor, id, tab, c }: PageContext) {
   return (
     <>
       <PageHeader title="Batches" description="Fixed groups, clear schedules, familiar faces.">
-        <BatchSetup
-          courses={c.courses.filter((c) => c.status === 'active')}
-          teachers={c.teachers
-            .filter((t) => t.status === 'active')
-            .map((t) => ({ id: t.id, name: t.fullName }))}
-          today={localDate()}
-        />
+        <BatchSetup today={localDate()} />
       </PageHeader>
       <CommonQr />
       <Table heads={['Batch', 'Course', 'Dates', 'Status', '']} empty={!c.batches.length}>

@@ -40,13 +40,15 @@ export default async function AdminPage({
   const include: ('batches' | 'courses' | 'teachers')[] =
     ['settings', 'audit-logs', 'overview'].includes(section) || (section === 'attendance' && id)
       ? []
-      : section === 'students'
+      : section === 'batches' && !id
         ? ['batches']
-        : section === 'courses'
-          ? ['courses']
-          : section === 'teachers'
-            ? ['teachers']
-            : ['batches', 'courses', 'teachers'];
+        : section === 'students'
+          ? ['batches']
+          : section === 'courses'
+            ? ['courses']
+            : section === 'teachers'
+              ? ['teachers']
+              : ['batches', 'courses', 'teachers'];
   const c = await catalog(actor, include);
   return <Page actor={actor} q={q} id={id} tab={tab} c={c} />;
 }

@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { BookOpen, CalendarDays, Users } from 'lucide-react';
 import { type Actor } from '@/lib/auth/permissions';
 import { todayBatches } from '@/lib/services/workflows';
-import { catalog } from '@/lib/services/queries';
 import { localDate } from '@/lib/utils';
 import { Badge, PageHeader } from '@/components/shared/page-header';
 import { CommonQr } from '@/components/shared/common-qr';
@@ -13,10 +12,7 @@ import { StartClass } from '@/components/workflows/start-class';
 
 export async function Today({ actor }: { actor: Actor }) {
   const teacher = actor.role === 'teacher';
-  const [batches, options] = await Promise.all([
-    todayBatches(actor),
-    teacher ? Promise.resolve(null) : catalog(actor, ['courses', 'teachers']),
-  ]);
+  const batches = await todayBatches(actor);
   const today = localDate(),
     base = teacher ? '/teacher' : '/admin';
   const choices = batches.map((b) => ({ id: b.id, name: b.name, courseName: b.courseName }));
@@ -33,16 +29,10 @@ export async function Today({ actor }: { actor: Actor }) {
           }).format(new Date()) + ' · Nepal time'
         }
       >
-        {options && (
+        {!teacher && (
           <div className="flex flex-wrap gap-2">
             <AddStudent batches={choices} />
-            <BatchSetup
-              courses={options.courses.filter((c) => c.status === 'active')}
-              teachers={options.teachers
-                .filter((t) => t.status === 'active')
-                .map((t) => ({ id: t.id, name: t.fullName }))}
-              today={today}
-            />
+            <BatchSetup today={today} />
           </div>
         )}
       </PageHeader>
@@ -71,15 +61,9 @@ export async function Today({ actor }: { actor: Actor }) {
               ? 'Ask your admin to assign a batch to your account.'
               : 'Create one batch with its course, teacher and class times. Then add your students—you’re ready to start.'}
           </p>
-          {options && (
+          {!teacher && (
             <div className="mt-6">
-              <BatchSetup
-                courses={options.courses.filter((c) => c.status === 'active')}
-                teachers={options.teachers
-                  .filter((t) => t.status === 'active')
-                  .map((t) => ({ id: t.id, name: t.fullName }))}
-                today={today}
-              />
+              <BatchSetup today={today} />
             </div>
           )}
         </section>

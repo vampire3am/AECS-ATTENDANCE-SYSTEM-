@@ -5,6 +5,7 @@ import * as admin from '@/lib/services/admin';
 import * as attendance from '@/lib/services/attendance';
 import * as checkins from '@/lib/services/check-in';
 import * as workflows from '@/lib/services/workflows';
+import { catalog } from '@/lib/services/queries';
 import { revalidatePath } from 'next/cache';
 import { ZodError } from 'zod';
 async function run<T>(work: () => Promise<T>, refresh = true) {
@@ -98,4 +99,17 @@ export async function startClassAction(input: unknown) {
 }
 export async function createTeacherAccountAction(input: unknown) {
   return run(async () => workflows.createTeacherAccount(await requireActor(true), input));
+}
+export async function batchSetupOptionsAction() {
+  return run(async () => {
+    const c = await catalog(await requireActor(true), ['courses', 'teachers']);
+    return {
+      courses: c.courses
+        .filter((v) => v.status === 'active')
+        .map((v) => ({ id: v.id, name: v.name })),
+      teachers: c.teachers
+        .filter((v) => v.status === 'active')
+        .map((v) => ({ id: v.id, name: v.fullName })),
+    };
+  }, false);
 }
