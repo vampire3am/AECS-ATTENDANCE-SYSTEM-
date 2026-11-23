@@ -1,4 +1,5 @@
 import { CreateRecord } from '@/components/shared/create-record';
+import { AddTeacher } from '@/components/workflows/add-teacher';
 import { Badge, PageHeader } from '@/components/shared/page-header';
 import { db } from '@/lib/db';
 import * as s from '@/lib/db/schema';
@@ -20,7 +21,7 @@ export async function TeachersPage({ c }: PageContext) {
   return (
     <>
       <PageHeader title="Teachers" description="Individual accounts. Clear responsibilities.">
-        <CreateRecord entity="teachers" title="Add teacher" fields={teacherFields()} />
+        <AddTeacher />
       </PageHeader>
       <Table
         heads={['Teacher', 'Contact', 'Assigned batches', 'Status', '']}

@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { db, type Tx } from '@/lib/db';
 import { batches, courses, profiles, teacherAssignments } from '@/lib/db/schema';
 import { invariant } from '@/lib/errors';
@@ -12,7 +13,7 @@ export type Actor = {
   role: 'super_admin' | 'teacher';
   sessionVersion: number;
 };
-export async function requireActor(admin = false): Promise<Actor> {
+const currentActor = cache(async (): Promise<Actor> => {
   const session = await getServerSession(authOptions);
   invariant(session?.user?.id, 'Please sign in.', 401);
   const [user] = await db
@@ -32,6 +33,10 @@ export async function requireActor(admin = false): Promise<Actor> {
     'Your session has expired.',
     401,
   );
+  return user;
+});
+export async function requireActor(admin = false): Promise<Actor> {
+  const user = await currentActor();
   invariant(!admin || user.role === 'super_admin', 'Administrator access required.', 403);
   return user;
 }

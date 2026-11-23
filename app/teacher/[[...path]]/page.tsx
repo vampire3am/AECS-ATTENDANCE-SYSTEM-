@@ -1,3 +1,4 @@
+import { Today } from '@/features/today/page';
 import { SessionCheckins } from '@/components/attendance/check-ins';
 import { CommonQr } from '@/components/shared/common-qr';
 import { AttendanceMarking } from '@/components/attendance/marking';
@@ -7,7 +8,7 @@ import { SignOut } from '@/components/shared/sign-out';
 import { actorTransaction, requireActor, requireBatch } from '@/lib/auth/permissions';
 import { db } from '@/lib/db';
 import * as s from '@/lib/db/schema';
-import { generateToday, getSession, listSessions } from '@/lib/services/attendance';
+import { getSession, listSessions } from '@/lib/services/attendance';
 import { catalog } from '@/lib/services/queries';
 import { localDate } from '@/lib/utils';
 import { uuid } from '@/lib/validations';
@@ -132,7 +133,7 @@ export default async function TeacherPage({ params }: { params: Promise<{ path?:
     );
   }
   if (section && section !== 'history') notFound();
-  if (!section) await generateToday(actor);
+  if (!section) return <Today actor={actor} />;
   const allSessions = await listSessions(actor, section ? {} : { date: today });
   const sessions =
     section === 'history' ? allSessions.filter((s) => s.submittedBy === actor.id) : allSessions;

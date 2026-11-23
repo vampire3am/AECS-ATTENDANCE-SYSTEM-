@@ -4,6 +4,7 @@ import { AppError } from '@/lib/errors';
 import * as admin from '@/lib/services/admin';
 import * as attendance from '@/lib/services/attendance';
 import * as checkins from '@/lib/services/check-in';
+import * as workflows from '@/lib/services/workflows';
 import { revalidatePath } from 'next/cache';
 import { ZodError } from 'zod';
 async function run<T>(work: () => Promise<T>, refresh = true) {
@@ -79,4 +80,22 @@ export async function startCheckinAction(id: string) {
 }
 export async function verifyCheckinAction(id: string) {
   return run(async () => checkins.verifyCheckin(await requireActor(), id));
+}
+export async function createBatchSetupAction(input: unknown) {
+  return run(async () => workflows.createBatchSetup(await requireActor(true), input));
+}
+export async function createEnrolledStudentAction(input: unknown) {
+  return run(async () => workflows.createEnrolledStudent(await requireActor(true), input));
+}
+export async function startClassAction(input: unknown) {
+  return run(async () => {
+    const result = await workflows.startClass(await requireActor(), input);
+    revalidatePath('/admin/dashboard');
+    revalidatePath('/teacher');
+    revalidatePath('/admin/attendance');
+    return result;
+  }, false);
+}
+export async function createTeacherAccountAction(input: unknown) {
+  return run(async () => workflows.createTeacherAccount(await requireActor(true), input));
 }

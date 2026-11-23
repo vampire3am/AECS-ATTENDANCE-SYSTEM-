@@ -410,11 +410,11 @@ export function AttendanceMarking({
             <p className="text-sm font-bold">
               {unmarked
                 ? `${unmarked} ${unmarked === 1 ? 'student needs' : 'students need'} a status`
-                : 'Ready to submit'}
+                : 'Ready to finish class'}
             </p>
             <p className="muted">
               {unmarked
-                ? 'Mark every student before submitting.'
+                ? 'Choose a status for each student, then finish the class.'
                 : 'Submission locks this class attendance.'}
             </p>
           </div>
@@ -426,12 +426,12 @@ export function AttendanceMarking({
             onClick={() => setConfirm(true)}
           >
             <LockKeyhole size={17} />
-            {busy ? 'Saving…' : 'Submit attendance'}
+            {busy ? 'Saving…' : 'Finish class'}
           </Button>
         </div>
       )}
       <Dialog
-        title="Submit attendance?"
+        title="Finish this class?"
         description="This finalizes and locks attendance for the entire class. Only an admin can make corrections with a reason."
         open={confirm}
         onOpenChange={setConfirm}
@@ -441,7 +441,7 @@ export function AttendanceMarking({
           excused
         </p>
         <Button disabled={busy} className="w-full" onClick={() => void send(true)}>
-          {busy ? 'Submitting…' : 'Confirm and submit'}
+          {busy ? 'Submitting…' : 'Finish & save attendance'}
         </Button>
       </Dialog>
     </div>

@@ -1,3 +1,4 @@
+import { AddStudent } from '@/components/workflows/add-student';
 import { EnrollmentCode } from '@/components/shared/enrollment-code';
 import { CreateRecord } from '@/components/shared/create-record';
 import { Badge, PageHeader } from '@/components/shared/page-header';
@@ -11,16 +12,20 @@ import { notFound } from 'next/navigation';
 import type { PageContext } from './context';
 import { Table } from './tables';
 import { localDate } from '@/lib/utils';
-export async function StudentsPage({ q, id }: PageContext) {
+export async function StudentsPage({ q, id, c }: PageContext) {
   if (id === 'new')
     return (
       <>
         <PageHeader
           title="Add student"
-          description="A unique AECS student code is generated automatically."
+          description="Choose a batch, enter the student’s details and get their private code."
         />
         <div className="panel max-w-xl">
-          <CreateRecord entity="students" title="Add student" fields={studentFields} />
+          <AddStudent
+            batches={c.batches.filter(
+              (b) => b.status === 'active' && (!b.endDate || b.endDate >= localDate()),
+            )}
+          />
         </div>
       </>
     );
@@ -146,7 +151,11 @@ export async function StudentsPage({ q, id }: PageContext) {
         title="Students"
         description={`${list.total} students · Keep every learner in view`}
       >
-        <CreateRecord entity="students" title="Add student" fields={studentFields} />
+        <AddStudent
+          batches={c.batches.filter(
+            (b) => b.status === 'active' && (!b.endDate || b.endDate >= localDate()),
+          )}
+        />
       </PageHeader>
       <form className="mb-5 flex flex-wrap gap-3">
         <input

@@ -3,44 +3,51 @@ import { db } from '@/lib/db';
 import * as s from '@/lib/db/schema';
 import { localDate } from '@/lib/utils';
 import { and, eq, ilike, or, sql } from 'drizzle-orm';
-export async function catalog(actor: Actor) {
+export async function catalog(
+  actor: Actor,
+  include: ('batches' | 'courses' | 'teachers')[] = ['batches', 'courses', 'teachers'],
+) {
   const assigned =
     actor.role === 'teacher'
       ? sql`exists(select 1 from teacher_assignments a where a.batch_id=${s.batches.id} and a.teacher_id=${actor.id} and a.active)`
       : undefined;
-  const batches = await db
-    .select({
-      id: s.batches.id,
-      name: s.batches.name,
-      code: s.batches.code,
-      courseId: s.batches.courseId,
-      courseName: s.courses.name,
-      startDate: s.batches.startDate,
-      endDate: s.batches.endDate,
-      status: s.batches.status,
-    })
-    .from(s.batches)
-    .innerJoin(s.courses, eq(s.courses.id, s.batches.courseId))
-    .where(assigned)
-    .orderBy(s.batches.name);
-  const courses = await db
-    .select({
-      id: s.courses.id,
-      name: s.courses.name,
-      code: s.courses.code,
-      description: s.courses.description,
-      status: s.courses.status,
-    })
-    .from(s.courses)
-    .where(
-      actor.role === 'teacher'
-        ? sql`${s.courses.id} in (select b.course_id from batches b join teacher_assignments a on a.batch_id=b.id where a.teacher_id=${actor.id} and a.active)`
-        : undefined,
-    )
-    .orderBy(s.courses.name);
-  const teachers =
-    actor.role === 'super_admin'
-      ? await db
+  const batchesQuery = include.includes('batches')
+    ? db
+        .select({
+          id: s.batches.id,
+          name: s.batches.name,
+          code: s.batches.code,
+          courseId: s.batches.courseId,
+          courseName: s.courses.name,
+          startDate: s.batches.startDate,
+          endDate: s.batches.endDate,
+          status: s.batches.status,
+        })
+        .from(s.batches)
+        .innerJoin(s.courses, eq(s.courses.id, s.batches.courseId))
+        .where(assigned)
+        .orderBy(s.batches.name)
+    : Promise.resolve([]);
+  const coursesQuery = include.includes('courses')
+    ? db
+        .select({
+          id: s.courses.id,
+          name: s.courses.name,
+          code: s.courses.code,
+          description: s.courses.description,
+          status: s.courses.status,
+        })
+        .from(s.courses)
+        .where(
+          actor.role === 'teacher'
+            ? sql`${s.courses.id} in (select b.course_id from batches b join teacher_assignments a on a.batch_id=b.id where a.teacher_id=${actor.id} and a.active)`
+            : undefined,
+        )
+        .orderBy(s.courses.name)
+    : Promise.resolve([]);
+  const teachersQuery =
+    actor.role === 'super_admin' && include.includes('teachers')
+      ? db
           .select({
             id: s.profiles.id,
             fullName: s.profiles.fullName,
@@ -51,7 +58,12 @@ export async function catalog(actor: Actor) {
           .from(s.profiles)
           .where(eq(s.profiles.role, 'teacher'))
           .orderBy(s.profiles.fullName)
-      : [];
+      : Promise.resolve([]);
+  const [batches, courses, teachers] = await Promise.all([
+    batchesQuery,
+    coursesQuery,
+    teachersQuery,
+  ]);
   return { batches, courses, teachers };
 }
 export async function studentList(search = '', page = 1, status = '') {

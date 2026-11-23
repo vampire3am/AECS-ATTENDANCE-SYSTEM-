@@ -1,3 +1,6 @@
+import { BatchSetup } from '@/components/workflows/batch-setup';
+import { AddStudent } from '@/components/workflows/add-student';
+import { localDate } from '@/lib/utils';
 import { EnrollmentCode } from '@/components/shared/enrollment-code';
 import { CommonQr } from '@/components/shared/common-qr';
 import { CreateRecord } from '@/components/shared/create-record';
@@ -36,7 +39,7 @@ export async function BatchesPage({ actor, id, tab, c }: PageContext) {
     ]);
     return (
       <>
-        <PageHeader title={batch.name} description={`${batch.courseName} · ${batch.code}`}>
+        <PageHeader title={batch.name} description={batch.courseName}>
           <CreateRecord
             entity="batches"
             title="Edit batch"
@@ -105,6 +108,13 @@ export async function BatchesPage({ actor, id, tab, c }: PageContext) {
         )}
         {tab === 'students' && (
           <>
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="font-bold">Students in this batch</h2>
+                <p className="muted">Add a student here to enroll them and get their code.</p>
+              </div>
+              <AddStudent batches={c.batches.filter((b) => b.status === 'active')} batchId={id} />
+            </div>
             <Table
               heads={['Student', 'Enrollment code', 'Enrollment', 'Status']}
               empty={!enrollment.length}
@@ -134,7 +144,10 @@ export async function BatchesPage({ actor, id, tab, c }: PageContext) {
                 </tr>
               ))}
             </Table>
-            <div className="mt-6">
+            <details className="mt-6">
+              <summary className="min-h-11 py-3 text-sm font-semibold text-slate-500">
+                Manage existing enrollments · transfer or end
+              </summary>
               <EnrollmentForms
                 batchId={id}
                 students={(
@@ -153,7 +166,7 @@ export async function BatchesPage({ actor, id, tab, c }: PageContext) {
                   .filter((r) => r.enrollment.status === 'active')
                   .map((r) => ({ id: r.enrollment.id, label: r.student.fullName }))}
               />
-            </div>
+            </details>
           </>
         )}
         {tab === 'schedule' && (
@@ -246,8 +259,9 @@ export async function BatchesPage({ actor, id, tab, c }: PageContext) {
           <SessionTable sessions={await listSessions(actor, { batchId: id })} />
         )}
         {!tab && (
-          <section className="panel mt-6">
-            <h2 className="font-semibold">Teacher assignments</h2>
+          <details className="panel mt-6">
+            <summary className="text-sm font-bold">Change teacher / advanced assignment</summary>
+            <h2 className="mt-4 font-semibold">Teacher assignments</h2>
             <div className="mt-3 space-y-2">
               {assignments.map((a) => (
                 <p key={a.email} className="muted">
@@ -262,7 +276,7 @@ export async function BatchesPage({ actor, id, tab, c }: PageContext) {
                 .filter((t) => t.status === 'active')
                 .map((t) => ({ value: t.id, label: t.fullName }))}
             />
-          </section>
+          </details>
         )}
       </>
     );
@@ -270,10 +284,12 @@ export async function BatchesPage({ actor, id, tab, c }: PageContext) {
   return (
     <>
       <PageHeader title="Batches" description="Fixed groups, clear schedules, familiar faces.">
-        <CreateRecord
-          entity="batches"
-          title="Add batch"
-          fields={batchFields(c.courses.filter((c) => c.status === 'active'))}
+        <BatchSetup
+          courses={c.courses.filter((c) => c.status === 'active')}
+          teachers={c.teachers
+            .filter((t) => t.status === 'active')
+            .map((t) => ({ id: t.id, name: t.fullName }))}
+          today={localDate()}
         />
       </PageHeader>
       <CommonQr />
@@ -284,7 +300,6 @@ export async function BatchesPage({ actor, id, tab, c }: PageContext) {
               <Link className="font-semibold text-[#3854AC]" href={`/admin/batches/${b.id}`}>
                 {b.name}
               </Link>
-              <p className="text-xs text-slate-400">{b.code}</p>
             </td>
             <td>{b.courseName}</td>
             <td>

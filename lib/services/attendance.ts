@@ -1,5 +1,5 @@
 import { actorTransaction, requireBatch, type Actor } from '@/lib/auth/permissions';
-import { db } from '@/lib/db';
+import { db, type Tx } from '@/lib/db';
 import {
   attendanceRecords,
   auditLogs,
@@ -52,40 +52,37 @@ export async function generateToday(actor: Actor) {
 }
 export async function openSession(actor: Actor, id: string) {
   uuid.parse(id);
-  return actorTransaction(actor, async (tx) => {
-    const [session] = await tx
-      .select()
-      .from(classSessions)
-      .where(eq(classSessions.id, id))
-      .for('update');
-    invariant(session, 'Session not found.', 404);
-    await requireBatch(tx, actor, session.batchId, true);
-    invariant(session.sessionDate === localDate(), 'Only today’s sessions can be opened.', 409);
-    invariant(
-      session.status === 'scheduled' || session.status === 'open',
-      'Session is locked.',
-      409,
-    );
-    if (session.status === 'scheduled') {
-      await tx.update(classSessions).set({ status: 'open' }).where(eq(classSessions.id, id));
-      await tx.execute(sql`select set_config('app.opening_roster','true',true)`);
-      const roster = await tx
-        .select({ studentId: enrollments.studentId })
-        .from(enrollments)
-        .where(
-          and(
-            eq(enrollments.batchId, session.batchId),
-            sql`${enrollments.enrolledOn}<=${session.sessionDate}::date and (${enrollments.endedOn} is null or ${enrollments.endedOn}>${session.sessionDate}::date)`,
-          ),
-        );
-      if (roster.length)
-        await tx
-          .insert(attendanceRecords)
-          .values(roster.map((r) => ({ sessionId: id, studentId: r.studentId })));
-      await tx.update(classSessions).set({ rosterLocked: true }).where(eq(classSessions.id, id));
-    }
-    return { id };
-  });
+  return actorTransaction(actor, (tx) => openSessionInTransaction(tx, actor, id));
+}
+export async function openSessionInTransaction(tx: Tx, actor: Actor, id: string) {
+  const [session] = await tx
+    .select()
+    .from(classSessions)
+    .where(eq(classSessions.id, id))
+    .for('update');
+  invariant(session, 'Session not found.', 404);
+  await requireBatch(tx, actor, session.batchId, true);
+  invariant(session.sessionDate === localDate(), 'Only today’s sessions can be opened.', 409);
+  invariant(session.status === 'scheduled' || session.status === 'open', 'Session is locked.', 409);
+  if (session.status === 'scheduled') {
+    await tx.update(classSessions).set({ status: 'open' }).where(eq(classSessions.id, id));
+    await tx.execute(sql`select set_config('app.opening_roster','true',true)`);
+    const roster = await tx
+      .select({ studentId: enrollments.studentId })
+      .from(enrollments)
+      .where(
+        and(
+          eq(enrollments.batchId, session.batchId),
+          sql`${enrollments.enrolledOn}<=${session.sessionDate}::date and (${enrollments.endedOn} is null or ${enrollments.endedOn}>${session.sessionDate}::date)`,
+        ),
+      );
+    if (roster.length)
+      await tx
+        .insert(attendanceRecords)
+        .values(roster.map((r) => ({ sessionId: id, studentId: r.studentId })));
+    await tx.update(classSessions).set({ rosterLocked: true }).where(eq(classSessions.id, id));
+  }
+  return { id };
 }
 export async function getSession(actor: Actor, id: string) {
   uuid.parse(id);

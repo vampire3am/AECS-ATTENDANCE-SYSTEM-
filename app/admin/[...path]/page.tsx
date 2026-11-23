@@ -1,3 +1,4 @@
+import Overview from '@/features/admin/pages/overview';
 import { AttendancePage } from '@/features/admin/pages/attendance';
 import { AuditLogsPage } from '@/features/admin/pages/audit-logs';
 import { BatchesPage } from '@/features/admin/pages/batches';
@@ -13,6 +14,7 @@ import { uuid } from '@/lib/validations';
 import { notFound } from 'next/navigation';
 const pages: Record<string, (ctx: PageContext) => Promise<React.ReactNode>> = {
   students: StudentsPage,
+  overview: Overview,
   courses: CoursesPage,
   batches: BatchesPage,
   teachers: TeachersPage,
@@ -35,6 +37,16 @@ export default async function AdminPage({
   if (id && id !== 'new' && !uuid.safeParse(id).success) notFound();
   const Page = pages[section];
   if (!Page || path.length > 3) notFound();
-  const c = await catalog(actor);
+  const include: ('batches' | 'courses' | 'teachers')[] =
+    ['settings', 'audit-logs', 'overview'].includes(section) || (section === 'attendance' && id)
+      ? []
+      : section === 'students'
+        ? ['batches']
+        : section === 'courses'
+          ? ['courses']
+          : section === 'teachers'
+            ? ['teachers']
+            : ['batches', 'courses', 'teachers'];
+  const c = await catalog(actor, include);
   return <Page actor={actor} q={q} id={id} tab={tab} c={c} />;
 }

@@ -36,7 +36,7 @@ export function OpenSession({ id, teacher = false }: { id: string; teacher?: boo
           }
         }}
       >
-        {busy ? 'Opening…' : 'Open attendance'}
+        {busy ? 'Starting class…' : 'Start class'}
       </Button>
       {error && (
         <p role="alert" className="text-sm text-red-600">

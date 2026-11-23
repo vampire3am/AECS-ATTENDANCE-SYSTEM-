@@ -1,6 +1,6 @@
 # AECS Attend
 
-Staff attendance workspace for Abroad Education Consultancy Services, Nepal. Administrators manage courses, batches, schedules, staff and fixed enrollments. Teachers open scheduled classes, mark a roster and submit attendance directly. There is no student login or approval queue.
+Attendance workspace for Abroad Education Consultancy Services, Nepal. Create a batch with its course, teacher and timetable in one form. Add a student to create their enrollment and private code together. From Today, Start class, confirm student check-ins and Finish class. Students use the common QR and private enrollment codes; assigned staff verify physical presence.
 
 **Live acceptance environment:** [https://aecs-attendance.vercel.app](https://aecs-attendance.vercel.app). Vercel hosts the app and Neon retains the database. Authenticated HTTP smoke checks pass; browser/mobile/offline acceptance is still pending. Do not treat the deployment as completion of every launch check.
 
@@ -45,3 +45,12 @@ See [ARCHITECTURE.md](ARCHITECTURE.md), [DATABASE.md](DATABASE.md), [DEPLOYMENT.
 Students can start directly at [aecs-attendance.vercel.app/student](https://aecs-attendance.vercel.app/student): verify the private code, choose Scan classroom QR, allow the camera and scan the teacher’s QR. Guests also see this student landing at the main URL. Staff use /login. QR image upload and classroom-link entry are available when camera access is unavailable.
 
 Common attendance QR: Admin > Batches > Download QR. Print the same QR for all current and future batches. Students verify their private enrollment code, see their course/batch, and confirm check-in. Teachers must open the class and confirm physical presence; zero/multiple open classes block check-in.
+
+## Daily use
+
+1. **Today → Create batch:** select or create a course and teacher, choose days/times and save. New teacher logins are generated and shown privately.
+2. **Add student:** enter name/contact and choose the batch; copy the private code for the student.
+3. **Today → Start class:** creates today’s scheduled session and opens its sealed roster automatically. A batch with no timetable today can start an extra class with explicit times.
+4. Confirm student check-ins, mark the remaining students and **Finish class**. Advanced administration, analytics and history remain under **Manage**.
+
+Pages stream a branded loading state without artificial delay. Database cold starts and network conditions can still affect response time.
