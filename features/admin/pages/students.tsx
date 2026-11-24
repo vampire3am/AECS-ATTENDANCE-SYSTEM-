@@ -91,7 +91,17 @@ export async function StudentsPage({ q, id, c }: PageContext) {
             <tr key={e.enrollment.id}>
               <td>
                 <Link href={`/admin/batches/${e.batch.id}/students`}>{e.batch.name}</Link>
-                <EnrollmentCode code={e.enrollment.checkinCode} />
+                <EnrollmentCode
+                  code={e.enrollment.checkinCode}
+                  recipient={{
+                    studentName: student.fullName,
+                    phone: student.phone,
+                    courseName:
+                      c.batches.find((batch) => batch.id === e.batch.id)?.courseName ??
+                      'AECS course',
+                    batchName: e.batch.name,
+                  }}
+                />
               </td>
               <td>{e.enrollment.enrolledOn}</td>
               <td>{e.enrollment.endedOn ?? 'Ongoing'}</td>
@@ -213,7 +223,15 @@ export async function StudentsPage({ q, id, c }: PageContext) {
                     <p className="text-xs font-semibold text-slate-600">
                       {e.courseName} · {e.batchName}
                     </p>
-                    <EnrollmentCode code={e.code} />
+                    <EnrollmentCode
+                      code={e.code}
+                      recipient={{
+                        studentName: r.fullName,
+                        phone: r.phone,
+                        courseName: e.courseName,
+                        batchName: e.batchName,
+                      }}
+                    />
                   </div>
                 ))}
               {!currentEnrollments.some((e) => e.studentId === r.id) && (

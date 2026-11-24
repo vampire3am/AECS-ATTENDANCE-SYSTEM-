@@ -92,7 +92,15 @@ export default async function TeacherPage({
                 </Link>
               </td>
               <td>
-                <EnrollmentCode code={r.code} />
+                <EnrollmentCode
+                  code={r.code}
+                  recipient={{
+                    studentName: r.fullName,
+                    phone: r.phone,
+                    courseName: r.courseName,
+                    batchName: r.batchName,
+                  }}
+                />
               </td>
             </tr>
           ))}
@@ -133,7 +141,15 @@ export default async function TeacherPage({
                 <td className="font-bold">{r.fullName}</td>
                 <td>{r.phone}</td>
                 <td>
-                  <EnrollmentCode code={r.code} />
+                  <EnrollmentCode
+                    code={r.code}
+                    recipient={{
+                      studentName: r.fullName,
+                      phone: r.phone,
+                      courseName: r.courseName,
+                      batchName: r.batchName,
+                    }}
+                  />
                 </td>
                 <td>{r.enrolledOn}</td>
               </tr>

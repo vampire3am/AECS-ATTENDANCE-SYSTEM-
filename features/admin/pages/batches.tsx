@@ -138,7 +138,15 @@ export async function BatchesPage({ actor, id, tab, c }: PageContext) {
                     </Link>
                   </td>
                   <td>
-                    <EnrollmentCode code={r.enrollment.checkinCode} />
+                    <EnrollmentCode
+                      code={r.enrollment.checkinCode}
+                      recipient={{
+                        studentName: r.student.fullName,
+                        phone: r.student.phone,
+                        courseName: batch.courseName,
+                        batchName: batch.name,
+                      }}
+                    />
                     <p className="mt-1 text-xs text-slate-400">
                       Student ID: {r.student.studentCode}
                     </p>

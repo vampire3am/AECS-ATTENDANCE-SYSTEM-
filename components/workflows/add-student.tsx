@@ -7,6 +7,7 @@ import { createEnrolledStudentAction } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { EnrollmentCode } from '@/components/shared/enrollment-code';
+import type { EnrollmentRecipient } from '@/lib/enrollment-message';
 
 export function AddStudent({
   batches,
@@ -27,6 +28,7 @@ export function AddStudent({
     studentCode: string;
     enrolledOn: string;
     batchId: string;
+    recipient: EnrollmentRecipient;
   } | null>(null);
   return (
     <>
@@ -52,7 +54,7 @@ export function AddStudent({
             <CheckCircle2 size={32} className="text-emerald-600" />
             <div>
               <p className="mb-2 text-sm font-bold">Give this private code to the student</p>
-              <EnrollmentCode code={result.enrollmentCode} />
+              <EnrollmentCode code={result.enrollmentCode} recipient={result.recipient} />
             </div>
             <p className="muted">
               Enrollment starts {result.enrolledOn}. The student scans the common AECS QR and enters
@@ -103,7 +105,16 @@ export function AddStudent({
               try {
                 const r = await createEnrolledStudentAction(Object.fromEntries(form));
                 if (r.ok) {
-                  setResult(r.data);
+                  const batch = batches.find((b) => b.id === r.data.batchId)!;
+                  setResult({
+                    ...r.data,
+                    recipient: {
+                      studentName: String(form.get('fullName') ?? '').trim(),
+                      phone: String(form.get('phone') ?? '').trim(),
+                      courseName: batch.courseName,
+                      batchName: batch.name,
+                    },
+                  });
                   router.refresh();
                 } else setError(r.error);
               } catch {
