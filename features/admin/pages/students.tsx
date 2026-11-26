@@ -1,4 +1,5 @@
 import { AddStudent } from '@/components/workflows/add-student';
+import { EnrollExistingStudent } from '@/components/workflows/enroll-existing-student';
 import { EnrollmentCode } from '@/components/shared/enrollment-code';
 import { CreateRecord } from '@/components/shared/create-record';
 import { Badge, PageHeader } from '@/components/shared/page-header';
@@ -137,6 +138,7 @@ export async function StudentsPage({ q, id, c }: PageContext) {
         .select({
           studentId: s.enrollments.studentId,
           code: s.enrollments.checkinCode,
+          enrolledOn: s.enrollments.enrolledOn,
           courseName: s.courses.name,
           batchName: s.batches.name,
         })
@@ -149,7 +151,7 @@ export async function StudentsPage({ q, id, c }: PageContext) {
               s.enrollments.studentId,
               list.rows.map((r) => r.id),
             ),
-            sql`${s.enrollments.enrolledOn}<=${localDate()}::date and (${s.enrollments.endedOn} is null or ${s.enrollments.endedOn}>${localDate()}::date)`,
+            sql`(${s.enrollments.endedOn} is null or ${s.enrollments.endedOn}>${localDate()}::date)`,
           ),
         )
         .orderBy(s.courses.name, s.batches.name)
@@ -161,6 +163,11 @@ export async function StudentsPage({ q, id, c }: PageContext) {
         title="Students"
         description={`${list.total} students · Keep every learner in view`}
       >
+        <EnrollExistingStudent
+          batches={c.batches.filter(
+            (b) => b.status === 'active' && (!b.endDate || b.endDate >= localDate()),
+          )}
+        />
         <AddStudent
           batches={c.batches.filter(
             (b) => b.status === 'active' && (!b.endDate || b.endDate >= localDate()),
@@ -223,6 +230,9 @@ export async function StudentsPage({ q, id, c }: PageContext) {
                     <p className="text-xs font-semibold text-slate-600">
                       {e.courseName} · {e.batchName}
                     </p>
+                    {e.enrolledOn > localDate() && (
+                      <p className="mt-1 text-xs text-blue-700">Enrollment starts {e.enrolledOn}</p>
+                    )}
                     <EnrollmentCode
                       code={e.code}
                       recipient={{

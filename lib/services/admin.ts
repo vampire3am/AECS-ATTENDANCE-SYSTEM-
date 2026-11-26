@@ -167,6 +167,12 @@ export async function saveEntity(actor: Actor, entity: Entity, raw: unknown, id?
 export async function enrollStudent(actor: Actor, raw: unknown) {
   const p = z.object({ studentId: v.uuid, batchId: v.uuid, enrolledOn: v.day }).parse(raw);
   return actorTransaction(actor, async (tx) => {
+    // Serialize batch enrollment before taking shared authorization/student locks.
+    await tx
+      .select({ id: s.batches.id })
+      .from(s.batches)
+      .where(eq(s.batches.id, p.batchId))
+      .for('update');
     await requireBatch(tx, actor, p.batchId, true);
     await requireVisibleStudent(tx, actor, p.studentId);
     const [student] = await tx
@@ -190,10 +196,26 @@ export async function enrollStudent(actor: Actor, raw: unknown) {
       'Enrollment date is outside student or batch dates.',
     );
     invariant(p.enrolledOn >= localDate(), 'New enrollments cannot be backdated.');
+    const [overlap] = await tx
+      .select({ id: s.enrollments.id })
+      .from(s.enrollments)
+      .where(
+        and(
+          eq(s.enrollments.studentId, p.studentId),
+          eq(s.enrollments.courseId, batch.courseId),
+          sql`(${s.enrollments.endedOn} is null or ${s.enrollments.endedOn}>${p.enrolledOn}::date)`,
+        ),
+      )
+      .limit(1);
+    invariant(
+      !overlap,
+      'This student is already enrolled in this course. Use Transfer to move them to another batch.',
+      409,
+    );
     const [row] = await tx
       .insert(s.enrollments)
       .values({ ...p, courseId: batch.courseId })
-      .returning({ id: s.enrollments.id });
+      .returning({ id: s.enrollments.id, code: s.enrollments.checkinCode });
     await tx.insert(s.auditLogs).values({
       actorId: actor.id,
       action: 'student_enrolled',

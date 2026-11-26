@@ -20,6 +20,8 @@ export async function verifyEnrollmentCode(raw: unknown) {
       courseName: s.courses.name,
       batchName: s.batches.name,
       batchCode: s.batches.code,
+      enrolledOn: s.enrollments.enrolledOn,
+      batchStartsOn: s.batches.startDate,
     })
     .from(s.enrollments)
     .innerJoin(s.students, eq(s.students.id, s.enrollments.studentId))
@@ -31,12 +33,14 @@ export async function verifyEnrollmentCode(raw: unknown) {
         eq(s.students.status, 'active'),
         eq(s.batches.status, 'active'),
         eq(s.courses.status, 'active'),
-        sql`${s.enrollments.enrolledOn}<=${today}::date and (${s.enrollments.endedOn} is null or ${s.enrollments.endedOn}>${today}::date)`,
+        sql`(${s.enrollments.endedOn} is null or ${s.enrollments.endedOn}>${today}::date) and (${s.batches.endDate} is null or ${s.batches.endDate}>=${today}::date)`,
       ),
     )
     .limit(1);
   invariant(enrollment, 'This enrollment code is invalid or is not currently active.', 400);
-  return enrollment;
+  const { enrolledOn, batchStartsOn, ...identity } = enrollment;
+  const startsOn = enrolledOn > batchStartsOn ? enrolledOn : batchStartsOn;
+  return { ...identity, startsOn, canCheckIn: startsOn <= today };
 }
 export async function startCheckin(actor: Actor, id: string) {
   uuid.parse(id);
@@ -91,7 +95,11 @@ export async function submitStudentCheckin(raw: unknown) {
     let sessionId: string;
     if (!('sessionId' in input)) {
       const [enrollment] = await tx
-        .select({ batchId: s.enrollments.batchId })
+        .select({
+          batchId: s.enrollments.batchId,
+          enrolledOn: s.enrollments.enrolledOn,
+          batchStartsOn: s.batches.startDate,
+        })
         .from(s.enrollments)
         .innerJoin(s.students, eq(s.students.id, s.enrollments.studentId))
         .innerJoin(s.batches, eq(s.batches.id, s.enrollments.batchId))
@@ -102,11 +110,20 @@ export async function submitStudentCheckin(raw: unknown) {
             eq(s.students.status, 'active'),
             eq(s.batches.status, 'active'),
             eq(s.courses.status, 'active'),
-            sql`${s.enrollments.enrolledOn}<=${localDate()}::date and (${s.enrollments.endedOn} is null or ${s.enrollments.endedOn}>${localDate()}::date)`,
+            sql`(${s.enrollments.endedOn} is null or ${s.enrollments.endedOn}>${localDate()}::date) and (${s.batches.endDate} is null or ${s.batches.endDate}>=${localDate()}::date)`,
           ),
         )
         .limit(1);
       invariant(enrollment, 'This enrollment code is invalid or is not currently active.', 400);
+      const startsOn =
+        enrollment.enrolledOn > enrollment.batchStartsOn
+          ? enrollment.enrolledOn
+          : enrollment.batchStartsOn;
+      invariant(
+        startsOn <= localDate(),
+        `Your enrollment is verified. Attendance opens from ${startsOn} (Nepal time).`,
+        409,
+      );
       const sessions = await tx
         .select({ id: s.classSessions.id })
         .from(s.classSessions)

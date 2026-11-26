@@ -1,5 +1,6 @@
 import { BatchSetup } from '@/components/workflows/batch-setup';
 import { AddStudent } from '@/components/workflows/add-student';
+import { EnrollExistingStudent } from '@/components/workflows/enroll-existing-student';
 import { localDate } from '@/lib/utils';
 import { EnrollmentCode } from '@/components/shared/enrollment-code';
 import { CommonQr } from '@/components/shared/common-qr';
@@ -121,7 +122,15 @@ export async function BatchesPage({ actor, id, tab, c }: PageContext) {
                 <h2 className="font-bold">Students in this batch</h2>
                 <p className="muted">Add a student here to enroll them and get their code.</p>
               </div>
-              <AddStudent batches={c.batches.filter((b) => b.status === 'active')} batchId={id} />
+              <div className="flex flex-wrap gap-2">
+                <EnrollExistingStudent
+                  batches={c.batches.filter(
+                    (b) => b.status === 'active' && (!b.endDate || b.endDate >= localDate()),
+                  )}
+                  batchId={id}
+                />
+                <AddStudent batches={c.batches.filter((b) => b.status === 'active')} batchId={id} />
+              </div>
             </div>
             <Table
               heads={['Student', 'Enrollment code', 'Enrollment', 'Status']}

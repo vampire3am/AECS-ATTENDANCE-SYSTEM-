@@ -10,6 +10,7 @@ import { EnrollmentForms, OpenSession } from '@/components/shared/session-action
 import { SignOut } from '@/components/shared/sign-out';
 import { BatchSetup } from '@/components/workflows/batch-setup';
 import { AddStudent } from '@/components/workflows/add-student';
+import { EnrollExistingStudent } from '@/components/workflows/enroll-existing-student';
 import { Button } from '@/components/ui/button';
 import { Table } from '@/features/admin/pages/tables';
 import { requirePageActor } from '@/lib/auth/permissions';
@@ -77,6 +78,11 @@ export default async function TeacherPage({
           title="My students"
           description="Only students enrolled in your assigned batches appear here."
         >
+          <EnrollExistingStudent
+            batches={c.batches.filter(
+              (b) => b.status === 'active' && (!b.endDate || b.endDate >= localDate()),
+            )}
+          />
           <AddStudent teacher batches={c.batches.filter((b) => b.status === 'active')} />
         </PageHeader>
         <Table heads={['Student', 'Your batch', 'Private enrollment code']} empty={!rows.length}>
@@ -123,6 +129,12 @@ export default async function TeacherPage({
     return (
       <>
         <PageHeader title={batch.name} description={batch.courseName}>
+          <EnrollExistingStudent
+            batches={c.batches.filter(
+              (b) => b.status === 'active' && (!b.endDate || b.endDate >= localDate()),
+            )}
+            batchId={id}
+          />
           <AddStudent
             teacher
             batches={c.batches.filter((b) => b.status === 'active')}

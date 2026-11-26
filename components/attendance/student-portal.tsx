@@ -21,6 +21,8 @@ type Identity = {
   courseName: string;
   batchName: string;
   batchCode: string;
+  startsOn: string;
+  canCheckIn: boolean;
 };
 export function StudentPortal({ initialScan }: { initialScan?: ClassroomScan }) {
   const [code, setCode] = useState(''),
@@ -253,7 +255,15 @@ export function StudentPortal({ initialScan }: { initialScan?: ClassroomScan }) 
                   Student ID: {identity.studentCode}
                 </div>
               </dl>
-              {scan ? (
+              {!identity.canCheckIn ? (
+                <div
+                  role="status"
+                  className="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-relaxed text-[#3854ac]"
+                >
+                  Your code is valid. Your enrollment starts on <strong>{identity.startsOn}</strong>{' '}
+                  (Nepal time). Come back on that date to check in after your teacher opens class.
+                </div>
+              ) : scan ? (
                 <>
                   <p className="muted mt-4">
                     Your teacher must open today’s class before you can check in.

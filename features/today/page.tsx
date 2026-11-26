@@ -86,6 +86,12 @@ export async function Today({ actor }: { actor: Actor }) {
                   <Users size={15} />
                   {b.studentCount} enrolled students
                 </p>
+                {b.studentCount > b.eligibleStudentCount && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    {b.eligibleStudentCount} eligible today ·{' '}
+                    {b.studentCount - b.eligibleStudentCount} upcoming enrollments
+                  </p>
+                )}
                 <div className="mt-5 flex-1 space-y-3 border-t border-slate-100 pt-4">
                   {running ? (
                     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -121,7 +127,7 @@ export async function Today({ actor }: { actor: Actor }) {
                               batchId={b.id}
                               scheduleId={slot.id}
                               teacher={teacher}
-                              disabled={!eligible || !b.studentCount}
+                              disabled={!eligible || !b.eligibleStudentCount}
                             />
                           )}
                         </div>
@@ -133,7 +139,7 @@ export async function Today({ actor }: { actor: Actor }) {
                       <StartClass
                         batchId={b.id}
                         teacher={teacher}
-                        disabled={!eligible || !b.studentCount}
+                        disabled={!eligible || !b.eligibleStudentCount}
                       />
                     </div>
                   )}

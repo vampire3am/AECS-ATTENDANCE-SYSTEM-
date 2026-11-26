@@ -199,11 +199,14 @@ describe.skipIf(!enabled)('Live PostgreSQL attendance invariants', () => {
     expect(identity.batchName).toBe('QR test batch');
     expect(identity).not.toHaveProperty('phone');
     expect(identity).not.toHaveProperty('checkinCode');
-    await expect(
-      verifyEnrollmentCode({
+    expect(
+      await verifyEnrollmentCode({
         code: enrollment.find((e) => e.studentId === studentIds[4])!.checkinCode,
       }),
-    ).rejects.toMatchObject({ status: 400 });
+    ).toMatchObject({
+      canCheckIn: false,
+      startsOn: new Date(Date.parse(today) + 86400000).toISOString().slice(0, 10),
+    });
     expect(new Set(enrollment.map((e) => e.checkinCode)).size).toBe(enrollment.length);
     expect(enrollmentCode).toMatch(/^AECS-[A-F0-9]{20}$/);
     await expect(startCheckin(other, qrSessionId)).rejects.toMatchObject({ status: 403 });

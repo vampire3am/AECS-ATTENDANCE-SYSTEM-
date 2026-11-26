@@ -21,6 +21,8 @@ import {
   verifyEnrollmentCode,
 } from '../lib/services/check-in';
 import { isoWeekday, localDate } from '../lib/utils';
+import { enrollStudent } from '../lib/services/admin';
+import { existingStudentOptions } from '../lib/services/enrollment-options';
 
 const enabled =
   process.env.TEST_DATABASE_BRANCH === 'integration-tests' && Boolean(process.env.DATABASE_URL);
@@ -208,9 +210,52 @@ describe.skipIf(!enabled)('Simple workflows on isolated PostgreSQL', () => {
       batchId: batch.id,
     });
     expect(student.enrolledOn).toBe(tomorrow);
-    await expect(verifyEnrollmentCode({ code: student.enrollmentCode })).rejects.toMatchObject({
-      status: 400,
+    expect(await verifyEnrollmentCode({ code: student.enrollmentCode })).toMatchObject({
+      startsOn: tomorrow,
+      canCheckIn: false,
+    });
+    const summary = (await todayBatches(admin)).find((b) => b.id === batch.id)!;
+    expect(summary.studentCount).toBe(1);
+    expect(summary.eligibleStudentCount).toBe(0);
+    await expect(submitStudentCheckin({ code: student.enrollmentCode })).rejects.toMatchObject({
+      status: 409,
+      message: expect.stringContaining(tomorrow),
     });
     await expect(startClass(admin, { batchId: batch.id })).rejects.toMatchObject({ status: 409 });
+  });
+  it('enrolls an existing student without duplicates and returns the new private code', async () => {
+    const batch = await createBatchSetup(admin, {
+      ...input,
+      name: 'Existing learner batch ' + suffix,
+      course: { name: 'Second course ' + suffix },
+      teacher: { id: teacher.id },
+    });
+    expect(
+      (
+        await existingStudentOptions(teacher, { batchId: batch.id, search: 'Learner ' + suffix })
+      ).map((s) => s.id),
+    ).toContain(studentId);
+    const results = await Promise.allSettled([
+      enrollStudent(teacher, { studentId, batchId: batch.id, enrolledOn: today }),
+      enrollStudent(teacher, { studentId, batchId: batch.id, enrolledOn: today }),
+    ]);
+    const success = results.find((r) => r.status === 'fulfilled');
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    expect(results.find((r) => r.status === 'rejected')).toMatchObject({ reason: { status: 409 } });
+    if (success?.status !== 'fulfilled') throw Error('Enrollment failed');
+    expect(success.value.code).not.toBe(code);
+    expect(await verifyEnrollmentCode({ code: success.value.code })).toMatchObject({
+      studentName: 'Learner ' + suffix,
+      batchName: 'Existing learner batch ' + suffix,
+      canCheckIn: true,
+    });
+    expect(
+      (
+        await existingStudentOptions(teacher, { batchId: batch.id, search: 'Learner ' + suffix })
+      ).map((s) => s.id),
+    ).not.toContain(studentId);
+    expect(
+      await db.select({ id: s.students.id }).from(s.students).where(eq(s.students.id, studentId)),
+    ).toHaveLength(1);
   });
 });

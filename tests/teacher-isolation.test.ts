@@ -25,6 +25,7 @@ import { teacherBatch, teacherStudents } from '../lib/services/teacher-workspace
 import { catalog, reportRows, studentList } from '../lib/services/queries';
 import { getSession, listSessions } from '../lib/services/attendance';
 import { accessState } from '../lib/services/access-state';
+import { existingStudentOptions } from '../lib/services/enrollment-options';
 import { isoWeekday, localDate } from '../lib/utils';
 const enabled =
   process.env.TEST_DATABASE_BRANCH === 'integration-tests' && Boolean(process.env.DATABASE_URL);
@@ -137,6 +138,23 @@ describe.skipIf(!enabled)('Teacher isolation and staff login security', () => {
     await expect(
       enrollStudent(t2, { studentId: student1, batchId: b2, enrolledOn: today }),
     ).rejects.toMatchObject({ status: 403 });
+  });
+  it('scopes the existing-student picker and excludes overlapping course enrollments', async () => {
+    await expect(existingStudentOptions(t1, { batchId: b2 })).rejects.toMatchObject({
+      status: 403,
+    });
+    expect(
+      (await existingStudentOptions(t2, { batchId: b2, search: suffix })).map((s) => s.id),
+    ).not.toContain(student1);
+    expect(
+      (await existingStudentOptions(admin, { batchId: b2, search: suffix })).map((s) => s.id),
+    ).toContain(student1);
+    expect(
+      (await existingStudentOptions(t1, { batchId: b1, search: suffix })).map((s) => s.id),
+    ).not.toContain(student1);
+    expect(
+      await existingStudentOptions(admin, { batchId: b2, search: "'; DROP TABLE students; --" }),
+    ).toEqual([]);
   });
   it('blocks foreign schedule, batch and enrollment mutations with forged IDs', async () => {
     await expect(

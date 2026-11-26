@@ -7,6 +7,7 @@ import * as checkins from '@/lib/services/check-in';
 import * as workflows from '@/lib/services/workflows';
 import { setTeacherCourses } from '@/lib/services/teacher-access';
 import { catalog } from '@/lib/services/queries';
+import { existingStudentOptions } from '@/lib/services/enrollment-options';
 import { revalidatePath } from 'next/cache';
 import { ZodError } from 'zod';
 async function run<T>(work: () => Promise<T>, refresh = true) {
@@ -46,6 +47,9 @@ export async function saveEntityAction(entity: admin.Entity, input: unknown, id?
 }
 export async function enrollAction(input: unknown) {
   return run(async () => admin.enrollStudent(await requireActor(), input));
+}
+export async function existingStudentOptionsAction(input: unknown) {
+  return run(async () => existingStudentOptions(await requireActor(), input), false);
 }
 export async function transferAction(input: unknown) {
   return run(async () => admin.transferStudent(await requireActor(), input));
