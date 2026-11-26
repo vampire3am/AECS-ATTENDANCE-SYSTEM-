@@ -9,7 +9,14 @@ import { EnrollmentCode } from '@/components/shared/enrollment-code';
 import { localDate } from '@/lib/utils';
 
 type Batch = { id: string; name: string; courseName: string; startDate: string };
-type Student = { id: string; fullName: string; phone: string; joinedOn: string };
+type Student = {
+  id: string;
+  fullName: string;
+  phone: string;
+  joinedOn: string;
+  enrollmentState: 'available' | 'enrolled_here' | 'other_batch';
+  existingCode: string | null;
+};
 export function EnrollExistingStudent({
   batches,
   batchId,
@@ -43,7 +50,9 @@ export function EnrollExistingStudent({
         if (!active) return;
         if (r.ok) {
           setStudents(r.data);
-          setSelected(r.data.find((s) => s.id === studentId)?.id ?? '');
+          setSelected(
+            r.data.find((s) => s.id === studentId)?.id ?? (r.data.length === 1 ? r.data[0].id : ''),
+          );
         } else setError(r.error);
       } catch {
         if (active) setError('Unable to load students. Try again.');
@@ -85,7 +94,7 @@ export function EnrollExistingStudent({
           if (!busy) setOpen(value);
         }}
         title={result ? 'Student enrolled' : 'Enroll an existing student'}
-        description="Use an existing student record. A new private code is created for this enrollment."
+        description="Find an existing student, check their enrollment, or add them to this batch."
       >
         {result ? (
           <div className="mt-5 space-y-4">
@@ -109,7 +118,7 @@ export function EnrollExistingStudent({
             className="mt-5 grid gap-4"
             onSubmit={async (e) => {
               e.preventDefault();
-              if (!student || !batch) return;
+              if (!student || !batch || student.enrollmentState !== 'available') return;
               setBusy(true);
               setError('');
               try {
@@ -175,17 +184,55 @@ export function EnrollExistingStudent({
                   {students.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.fullName} · {s.phone}
+                      {s.enrollmentState === 'enrolled_here'
+                        ? ' · Already in this batch'
+                        : s.enrollmentState === 'other_batch'
+                          ? ' · Transfer required'
+                          : ''}
                     </option>
                   ))}
                 </select>
               </label>
               <p className="muted">
-                Shows up to 50 eligible students. Search to find more. Students already enrolled in
-                this course are excluded; use Transfer to change their batch. Teachers can only
-                select students from their assigned batches.
+                Shows up to 50 matching students. Search to find more. Teachers can only see
+                students from their assigned batches.
               </p>
-              {student && <p className="text-sm">Enrollment starts {startsOn} (Nepal time).</p>}
+              {student?.enrollmentState === 'available' && (
+                <p className="text-sm">New enrollment starts {startsOn} (Nepal time).</p>
+              )}
             </fieldset>
+            {student?.enrollmentState === 'enrolled_here' && batch && (
+              <section
+                role="status"
+                className="grid min-w-0 gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4"
+              >
+                <p className="text-sm font-semibold text-emerald-900">
+                  {student.fullName} is already enrolled in this batch. Use their existing code
+                  below—no new enrollment is needed.
+                </p>
+                {student.existingCode && (
+                  <EnrollmentCode
+                    code={student.existingCode}
+                    recipient={{
+                      studentName: student.fullName,
+                      phone: student.phone,
+                      courseName: batch.courseName,
+                      batchName: batch.name,
+                    }}
+                  />
+                )}
+              </section>
+            )}
+            {student?.enrollmentState === 'other_batch' && (
+              <p
+                role="status"
+                className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900"
+              >
+                {student.fullName} is already enrolled in another batch of this course. Use Transfer
+                in the batch’s enrollment actions, or ask your administrator to move them. Their
+                other enrollment’s private code is not shown here.
+              </p>
+            )}
             {error && (
               <p role="alert" className="text-sm text-red-700">
                 {error}
@@ -193,12 +240,23 @@ export function EnrollExistingStudent({
             )}
             {!loading && target && !students.length && !error && (
               <p role="status" className="muted">
-                No eligible students found. Try another search or batch.
+                No matching students found. Check the spelling, student ID or phone number.
               </p>
             )}
-            <Button type="submit" disabled={busy || loading || !student || !batch}>
+            <Button
+              type="submit"
+              disabled={
+                busy || loading || !student || !batch || student.enrollmentState !== 'available'
+              }
+            >
               {busy && <LoaderCircle size={16} className="animate-spin" />}
-              {busy ? 'Enrolling…' : 'Enroll student & get code'}
+              {busy
+                ? 'Enrolling…'
+                : student?.enrollmentState === 'enrolled_here'
+                  ? 'Already enrolled — use the code above'
+                  : student?.enrollmentState === 'other_batch'
+                    ? 'Transfer required'
+                    : 'Enroll student & get code'}
             </Button>
           </form>
         )}

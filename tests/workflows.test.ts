@@ -252,8 +252,8 @@ describe.skipIf(!enabled)('Simple workflows on isolated PostgreSQL', () => {
     expect(
       (
         await existingStudentOptions(teacher, { batchId: batch.id, search: 'Learner ' + suffix })
-      ).map((s) => s.id),
-    ).not.toContain(studentId);
+      ).find((s) => s.id === studentId),
+    ).toMatchObject({ enrollmentState: 'enrolled_here', existingCode: success.value.code });
     expect(
       await db.select({ id: s.students.id }).from(s.students).where(eq(s.students.id, studentId)),
     ).toHaveLength(1);

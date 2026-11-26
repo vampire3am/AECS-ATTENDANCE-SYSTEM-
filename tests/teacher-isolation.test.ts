@@ -139,7 +139,7 @@ describe.skipIf(!enabled)('Teacher isolation and staff login security', () => {
       enrollStudent(t2, { studentId: student1, batchId: b2, enrolledOn: today }),
     ).rejects.toMatchObject({ status: 403 });
   });
-  it('scopes the existing-student picker and excludes overlapping course enrollments', async () => {
+  it('shows existing enrollment status while protecting other teachers’ students and private codes', async () => {
     await expect(existingStudentOptions(t1, { batchId: b2 })).rejects.toMatchObject({
       status: 403,
     });
@@ -150,8 +150,19 @@ describe.skipIf(!enabled)('Teacher isolation and staff login security', () => {
       (await existingStudentOptions(admin, { batchId: b2, search: suffix })).map((s) => s.id),
     ).toContain(student1);
     expect(
-      (await existingStudentOptions(t1, { batchId: b1, search: suffix })).map((s) => s.id),
-    ).not.toContain(student1);
+      (await existingStudentOptions(t1, { batchId: b1, search: suffix })).find(
+        (s) => s.id === student1,
+      ),
+    ).toMatchObject({
+      enrollmentState: 'enrolled_here',
+      existingCode: expect.stringMatching(/^AECS-[A-F0-9]{20}$/),
+    });
+    const otherBatch = await createBatchSetup(admin, setup(ielts, 'Transfer destination'));
+    expect(
+      (await existingStudentOptions(admin, { batchId: otherBatch.id, search: suffix })).find(
+        (s) => s.id === student1,
+      ),
+    ).toMatchObject({ enrollmentState: 'other_batch', existingCode: null });
     expect(
       await existingStudentOptions(admin, { batchId: b2, search: "'; DROP TABLE students; --" }),
     ).toEqual([]);

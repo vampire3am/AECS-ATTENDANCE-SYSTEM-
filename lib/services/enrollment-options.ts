@@ -17,12 +17,22 @@ export async function existingStudentOptions(actor: Actor, raw: unknown) {
   return actorTransaction(actor, async (tx) => {
     const batch = await requireBatch(tx, actor, batchId, true);
     const startsOn = batch.startDate > localDate() ? batch.startDate : localDate();
+    // Keep correlated references qualified inside Drizzle single-table selections.
+    const outerStudentId = sql`"students"."id"`;
+    const outerJoinedOn = sql`"students"."joined_on"`;
     return tx
       .select({
         id: s.students.id,
         fullName: s.students.fullName,
         phone: s.students.phone,
         joinedOn: s.students.joinedOn,
+        enrollmentState: sql<'available' | 'enrolled_here' | 'other_batch'>`case
+          when exists(select 1 from enrollments e where e.student_id=${outerStudentId} and e.batch_id=${batchId} and (e.ended_on is null or e.ended_on>greatest(${startsOn}::date,${outerJoinedOn}))) then 'enrolled_here'
+          when exists(select 1 from enrollments e where e.student_id=${outerStudentId} and e.course_id=${batch.courseId} and (e.ended_on is null or e.ended_on>greatest(${startsOn}::date,${outerJoinedOn}))) then 'other_batch'
+          else 'available' end`,
+        existingCode: sql<
+          string | null
+        >`(select e.checkin_code from enrollments e where e.student_id=${outerStudentId} and e.batch_id=${batchId} and (e.ended_on is null or e.ended_on>greatest(${startsOn}::date,${outerJoinedOn})) order by e.enrolled_on desc limit 1)`,
       })
       .from(s.students)
       .where(
@@ -44,7 +54,6 @@ export async function existingStudentOptions(actor: Actor, raw: unknown) {
                   .where(teacherBatchScope(actor.id, s.enrollments.batchId)),
               )
             : undefined,
-          sql`not exists(select 1 from enrollments e where e.student_id=${s.students.id} and e.course_id=${batch.courseId} and (e.ended_on is null or e.ended_on>greatest(${startsOn}::date,${s.students.joinedOn})))`,
         ),
       )
       .orderBy(s.students.fullName, s.students.id)
